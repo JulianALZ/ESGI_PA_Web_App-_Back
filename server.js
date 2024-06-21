@@ -52,6 +52,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (request, respon
 });
 
 const handleCheckoutSessionCompleted = async (session) => {
+	console.log('Entered handleCheckoutSessionCompleted'); // Log pour vérifier que la fonction est bien appelée
 	const client = await pool.connect();
 	try {
 		const userId = 1; // Utiliser l'ID de l'utilisateur en brut pour le moment
@@ -59,15 +60,16 @@ const handleCheckoutSessionCompleted = async (session) => {
 		console.log('Processing session completed for user:', userId, 'with amount:', amount);
 
 		// Ajoutez la transaction à la base de données
-		await client.query(
-			'INSERT INTO user_action_history (deposit, wallet, gain, user_id) VALUES ($1, $2, $3, $4)',
+		const result = await client.query(
+			'INSERT INTO user_action_history (deposit, wallet, gain, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
 			[amount, 0, 0, userId]
 		);
-		console.log('Transaction recorded for user:', userId);
+		console.log('Transaction recorded for user:', userId, 'Result:', result.rows[0]);
 	} catch (err) {
 		console.error('Error recording transaction:', err);
 	} finally {
 		client.release();
+		console.log('Client connection released');
 	}
 };
 
