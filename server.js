@@ -24,7 +24,22 @@ const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez pa
 
 app.use(cors());
 
-// Route pour les webhooks Stripe, avec le middleware express.raw pour traiter le payload brut
+// Vérifions la connexion à la base de données après le démarrage du serveur
+const testDbConnection = async () => {
+	try {
+		const client = await pool.connect();
+		console.log('Test DB connection established');
+		const testQuery = await client.query('SELECT NOW()');
+		console.log('Test query result:', testQuery.rows[0]);
+		client.release();
+	} catch (err) {
+		console.error('Error testing DB connection:', err);
+	}
+};
+
+// Appelons cette fonction après avoir démarré le serveur
+testDbConnection();
+
 app.post('/webhook', express.raw({ type: 'application/json' }), (request, response) => {
 	const sig = request.headers['stripe-signature'];
 
@@ -41,7 +56,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (request, respon
 	switch (event.type) {
 		case 'checkout.session.completed':
 			const session = event.data.object;
-			console.log('Session:', session);
+			console.log('Session: ', event.type);
 			handleCheckoutSessionCompleted(session);
 			break;
 		default:
