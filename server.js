@@ -59,6 +59,10 @@ const handleCheckoutSessionCompleted = async (session) => {
 		const client = await pool.connect();
 		console.log('Database connection established');
 
+		// Essayons une requête simple pour vérifier la connexion
+		const testQuery = await client.query('SELECT NOW()');
+		console.log('Test query result:', testQuery.rows[0]);
+
 		const userId = 1; // Utiliser l'ID de l'utilisateur en brut pour le moment
 		const amount = session.amount_total / 100; // Assurez-vous de convertir en unité monétaire correcte
 		console.log('Processing session completed for user:', userId, 'with amount:', amount);
