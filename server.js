@@ -22,7 +22,6 @@ const pool = new Pool({
 
 const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez par votre secret de Webhook Stripe
 
-app.use(bodyParser.json());
 app.use(cors());
 
 // Route pour les webhooks Stripe, avec le middleware express.raw pour traiter le payload brut
@@ -103,6 +102,8 @@ createTables().then(() => {
 		console.log(`Server running on http://localhost:${PORT}`);
 	});
 });
+
+app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
 
 app.post('/api/login', async (req, res) => {
 	const { username, password } = req.body;
