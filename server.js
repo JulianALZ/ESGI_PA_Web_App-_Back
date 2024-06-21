@@ -24,19 +24,22 @@ const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez pa
 
 app.use(cors());
 
-// Vérifions la connexion à la base de données après le démarrage du serveur
-const testDbConnection = async () => {
-	try {
-		console.log('Test DB connection pending');
-		const client = await pool.connect();
-		console.log('Test DB connection established');
-		const testQuery = await client.query('SELECT NOW()');
-		console.log('Test query result:', testQuery.rows[0]);
-		client.release();
-	} catch (err) {
-		console.error('Error testing DB connection:', err);
-	}
+// Test de la connexion à la base de données
+const testDbConnection = () => {
+	pool.connect((err, client, release) => {
+		if (err) {
+			return console.error('Error acquiring client', err.stack);
+		}
+		client.query('SELECT NOW()', (err, result) => {
+			release();
+			if (err) {
+				return console.error('Error executing query', err.stack);
+			}
+			console.log('Test query result:', result.rows[0]);
+		});
+	});
 };
+
 
 
 app.post('/webhook', express.raw({ type: 'application/json' }), (request, response) => {
@@ -55,7 +58,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (request, respon
 	switch (event.type) {
 		case 'checkout.session.completed':
 			const session = event.data.object;
-			console.log('Session: ', event.type);
+			console.log('Session:', event.type);
 			testDbConnection();
 			handleCheckoutSessionCompleted(session);
 			break;
@@ -66,107 +69,129 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (request, respon
 	response.json({ received: true });
 });
 
-const handleCheckoutSessionCompleted = async (session) => {
+const handleCheckoutSessionCompleted = (session) => {
 	console.log('Entered handleCheckoutSessionCompleted'); // Log pour vérifier que la fonction est bien appelée
 
-	try {
-		console.log('Trying to connect to the database');
-		const client = await pool.connect();
+	console.log('Trying to connect to the database');
+	pool.connect((err, client, release) => {
+		if (err) {
+			return console.error('Error acquiring client', err.stack);
+		}
 		console.log('Database connection established');
-
-		// Essayons une requête simple pour vérifier la connexion
-		const testQuery = await client.query('SELECT NOW()');
-		console.log('Test query result:', testQuery.rows[0]);
 
 		const userId = 1; // Utiliser l'ID de l'utilisateur en brut pour le moment
 		const amount = session.amount_total / 100; // Assurez-vous de convertir en unité monétaire correcte
 		console.log('Processing session completed for user:', userId, 'with amount:', amount);
 
-		// Ajoutez la transaction à la base de données
-		const result = await client.query(
-			'INSERT INTO user_action_history (deposit, wallet, gain, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
-			[amount, 0, 0, userId]
+		client.query('INSERT INTO user_action_history (deposit, wallet, gain, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
+			[amount, 0, 0, userId], (err, result) => {
+				release();
+				if (err) {
+					return console.error('Error executing query', err.stack);
+				}
+				console.log('Transaction recorded for user:', userId, 'Result:', result.rows[0]);
+			}
 		);
-		console.log('Transaction recorded for user:', userId, 'Result:', result.rows[0]);
-
-		client.release();
-		console.log('Client connection released');
-	} catch (err) {
-		console.error('Error in handleCheckoutSessionCompleted:', err);
-	}
+	});
 };
 
-const createTables = async () => {
-	const client = await pool.connect();
-	try {
-		await client.query(`
+const createTables = () => {
+	pool.connect((err, client, release) => {
+		if (err) {
+			return console.error('Error acquiring client', err.stack);
+		}
+		client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 username VARCHAR(255) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL
             );
-        `);
-		await client.query(`
-            CREATE TABLE IF NOT EXISTS user_action_history (
-                id SERIAL PRIMARY KEY,
-                deposit NUMERIC NOT NULL,
-                wallet NUMERIC NOT NULL DEFAULT 0,
-                gain NUMERIC NOT NULL DEFAULT 0,
-                user_id INTEGER REFERENCES users(id)
-            );
-        `);
-		console.log('Tables created successfully');
-	} catch (err) {
-		console.error('Error creating tables:', err);
-	} finally {
-		client.release();
-	}
+        `, (err) => {
+			if (err) {
+				return console.error('Error creating users table', err.stack);
+			}
+			client.query(`
+                CREATE TABLE IF NOT EXISTS user_action_history (
+                    id SERIAL PRIMARY KEY,
+                    deposit NUMERIC NOT NULL,
+                    wallet NUMERIC NOT NULL DEFAULT 0,
+                    gain NUMERIC NOT NULL DEFAULT 0,
+                    user_id INTEGER REFERENCES users(id)
+                );
+            `, (err) => {
+				release();
+				if (err) {
+					return console.error('Error creating user_action_history table', err.stack);
+				}
+				console.log('Tables created successfully');
+			});
+		});
+	});
 };
 
 // Créez les tables avant de démarrer le serveur
-createTables().then(() => {
-	app.listen(PORT, () => {
-		console.log(`Server running on http://localhost:${PORT}`);
-	});
+createTables();
+
+app.listen(PORT, () => {
+	console.log(`Server running on http://localhost:${PORT}`);
 });
 
 app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', (req, res) => {
 	const { username, password } = req.body;
-	const client = await pool.connect();
-
-	try {
-		const result = await client.query('SELECT * FROM users WHERE username = $1', [username]);
-		const user = result.rows[0];
-
-		if (user && bcrypt.compareSync(password, user.password)) {
-			const token = jwt.sign({ id: user.id }, SECRET_KEY, { expiresIn: '1h' });
-			res.json({ token });
-		} else {
-			res.status(401).send('Invalid credentials');
+	pool.connect((err, client, release) => {
+		if (err) {
+			return console.error('Error acquiring client', err.stack);
 		}
-	} finally {
-		client.release();
-	}
+		client.query('SELECT * FROM users WHERE username = $1', [username], (err, result) => {
+			release();
+			if (err) {
+				return res.status(500).send('Error executing query');
+			}
+			const user = result.rows[0];
+
+			if (user && bcrypt.compareSync(password, user.password)) {
+				const token = jwt.sign({ id: user.id }, SECRET_KEY, { expiresIn: '1h' });
+				res.json({ token });
+			} else {
+				res.status(401).send('Invalid credentials');
+			}
+		});
+	});
 });
 
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', (req, res) => {
 	const { username, password } = req.body;
-	const client = await pool.connect();
-
-	try {
-		const result = await client.query('SELECT * FROM users WHERE username = $1', [username]);
-		if (result.rows.length > 0) {
-			return res.status(400).send('User already exists');
+	pool.connect((err, client, release) => {
+		if (err) {
+			return console.error('Error acquiring client', err.stack);
 		}
+		client.query('SELECT * FROM users WHERE username = $1', [username], (err, result) => {
+			if (err) {
+				release();
+				return res.status(500).send('Error executing query');
+			}
+			if (result.rows.length > 0) {
+				release();
+				return res.status(400).send('User already exists');
+			}
 
-		const hashedPassword = await bcrypt.hash(password, 10);
-		await client.query('INSERT INTO users (username, password) VALUES ($1, $2)', [username, hashedPassword]);
-		res.status(201).send('User created');
-	} finally {
-		client.release();
-	}
+			bcrypt.hash(password, 10, (err, hashedPassword) => {
+				if (err) {
+					release();
+					return res.status(500).send('Error hashing password');
+				}
+				client.query('INSERT INTO users (username, password) VALUES ($1, $2)', [username, hashedPassword], (err) => {
+					release();
+					if (err) {
+						return res.status(500).send('Error executing query');
+					}
+					res.status(201).send('User created');
+				});
+			});
+		});
+	});
 });
 
 app.get('/', (req, res) => {
