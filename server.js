@@ -13,10 +13,10 @@ const stripe = stripePackage('sk_test_51PSnc4P6OFtHWfqTKEKGbqCyKlSrpQUzNtALbE1Yx
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SECRET_KEY = process.env.SECRET_KEY;
+const SECRET_KEY = 'PA_ESGI_DB_WOW'; // Remplacez par votre clé secrète
 
 const pool = new Pool({
-	connectionString: process.env.DATABASE_URL,
+	connectionString: 'postgresql://esgiPA_owner:a9dFHT0UEOhs@ep-dry-butterfly-a2jyjal0.eu-central-1.aws.neon.tech/esgiPA?sslmode=require',
 	port: 5432,
 });
 
@@ -24,7 +24,7 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use(bodyParser.raw({ type: 'application/json' })); // Ajouté pour traiter le payload brut des webhooks
 
-const createTable = async () => {
+const createTables = async () => {
 	const client = await pool.connect();
 	try {
 		await client.query(`
@@ -51,7 +51,12 @@ const createTable = async () => {
 	}
 };
 
-createTable();
+// Créez les tables avant de démarrer le serveur
+createTables().then(() => {
+	app.listen(PORT, () => {
+		console.log(`Server running on http://localhost:${PORT}`);
+	});
+});
 
 app.post('/api/login', async (req, res) => {
 	const { username, password } = req.body;
@@ -120,7 +125,7 @@ app.post('/webhook', (request, response) => {
 const handleCheckoutSessionCompleted = async (session) => {
 	const client = await pool.connect();
 	try {
-		const userId = session.client_reference_id; // Assurez-vous que ce champ est défini lors de la création de la session de paiement
+		const userId = 1; // Utiliser l'ID de l'utilisateur en brut
 		console.log('Session completed:', session);
 
 		// Ajoutez la transaction à la base de données
@@ -138,8 +143,4 @@ const handleCheckoutSessionCompleted = async (session) => {
 
 app.get('/', (req, res) => {
 	res.send('Server is running');
-});
-
-app.listen(PORT, () => {
-	console.log(`Server running on http://localhost:${PORT}`);
 });
