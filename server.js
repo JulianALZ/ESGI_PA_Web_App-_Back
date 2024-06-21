@@ -41,6 +41,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (request, respon
 	switch (event.type) {
 		case 'checkout.session.completed':
 			const session = event.data.object;
+			console.log('Session:', session);
 			handleCheckoutSessionCompleted(session);
 			break;
 		default:
@@ -53,13 +54,14 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (request, respon
 const handleCheckoutSessionCompleted = async (session) => {
 	const client = await pool.connect();
 	try {
-		const userId = 1; // Utiliser l'ID de l'utilisateur en brut
-		console.log('Session completed:', session);
+		const userId = 1; // Utiliser l'ID de l'utilisateur en brut pour le moment
+		const amount = session.amount_total / 100; // Assurez-vous de convertir en unité monétaire correcte
+		console.log('Processing session completed for user:', userId, 'with amount:', amount);
 
 		// Ajoutez la transaction à la base de données
 		await client.query(
 			'INSERT INTO user_action_history (deposit, wallet, gain, user_id) VALUES ($1, $2, $3, $4)',
-			[session.amount_total / 100, 0, 0, userId]
+			[amount, 0, 0, userId]
 		);
 		console.log('Transaction recorded for user:', userId);
 	} catch (err) {
