@@ -21,9 +21,6 @@ const pool = new Pool({
 		rejectUnauthorized: false
 	},
 	port: 5432,
-	max: 10, // Limite le nombre de connexions simultanées
-	idleTimeoutMillis: 30000, // Ferme les connexions inactives après 30 secondes
-	connectionTimeoutMillis: 8000, // Timeout après 2 secondes si la connexion n'est pas établie
 });
 
 const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez par votre secret de Webhook Stripe
@@ -34,7 +31,7 @@ app.use(cors());
 const testDbConnection = () => {
 	pool.connect((err, client, release) => {
 		if (err) {
-			return console.error('Error acquiring client', err.stack);
+			return console.error('test Error acquiring client', err.stack);
 		}
 		client.query('SELECT NOW()', (err, result) => {
 			release();
@@ -64,7 +61,6 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (request, respon
 	switch (event.type) {
 		case 'checkout.session.completed':
 			const session = event.data.object;
-			testDbConnection
 			console.log('Session:', event.type);
 			handleCheckoutSessionCompleted(session);
 			break;
