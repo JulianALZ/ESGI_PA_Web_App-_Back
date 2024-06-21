@@ -21,6 +21,9 @@ const pool = new Pool({
 		rejectUnauthorized: false
 	},
 	port: 5432,
+	max: 10, // Limite le nombre de connexions simultanées
+	idleTimeoutMillis: 30000, // Ferme les connexions inactives après 30 secondes
+	connectionTimeoutMillis: 8000, // Timeout après 2 secondes si la connexion n'est pas établie
 });
 
 const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez par votre secret de Webhook Stripe
@@ -43,7 +46,7 @@ const testDbConnection = () => {
 	});
 };
 
-
+testDbConnection();
 
 app.post('/webhook', express.raw({ type: 'application/json' }), (request, response) => {
 	const sig = request.headers['stripe-signature'];
@@ -61,8 +64,8 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (request, respon
 	switch (event.type) {
 		case 'checkout.session.completed':
 			const session = event.data.object;
+			testDbConnection
 			console.log('Session:', event.type);
-			testDbConnection();
 			handleCheckoutSessionCompleted(session);
 			break;
 		default:
@@ -78,7 +81,7 @@ const handleCheckoutSessionCompleted = (session) => {
 	console.log('Trying to connect to the database');
 	pool.connect((err, client, release) => {
 		if (err) {
-			return console.error('Error acquiring client', err.stack);
+			return console.error('Error acquiring client:', err.stack);
 		}
 		console.log('Database connection established');
 
