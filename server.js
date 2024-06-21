@@ -53,8 +53,12 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (request, respon
 
 const handleCheckoutSessionCompleted = async (session) => {
 	console.log('Entered handleCheckoutSessionCompleted'); // Log pour vérifier que la fonction est bien appelée
-	const client = await pool.connect();
+
 	try {
+		console.log('Trying to connect to the database');
+		const client = await pool.connect();
+		console.log('Database connection established');
+
 		const userId = 1; // Utiliser l'ID de l'utilisateur en brut pour le moment
 		const amount = session.amount_total / 100; // Assurez-vous de convertir en unité monétaire correcte
 		console.log('Processing session completed for user:', userId, 'with amount:', amount);
@@ -65,11 +69,11 @@ const handleCheckoutSessionCompleted = async (session) => {
 			[amount, 0, 0, userId]
 		);
 		console.log('Transaction recorded for user:', userId, 'Result:', result.rows[0]);
-	} catch (err) {
-		console.error('Error recording transaction:', err);
-	} finally {
+
 		client.release();
 		console.log('Client connection released');
+	} catch (err) {
+		console.error('Error in handleCheckoutSessionCompleted:', err);
 	}
 };
 
@@ -96,7 +100,6 @@ const createTables = async () => {
 	} catch (err) {
 		console.error('Error creating tables:', err);
 	} finally {
-		console.log('end handleCheckoutSessionCompleted');
 		client.release();
 	}
 };
