@@ -17,6 +17,9 @@ const SECRET_KEY = 'PA_ESGI_DB_WOW'; // Remplacez par votre clé secrète
 
 const pool = new Pool({
 	connectionString: 'postgresql://esgiPA_owner:a9dFHT0UEOhs@ep-dry-butterfly-a2jyjal0.eu-central-1.aws.neon.tech/esgiPA?sslmode=require',
+	ssl: {
+		rejectUnauthorized: false
+	},
 	port: 5432,
 });
 
