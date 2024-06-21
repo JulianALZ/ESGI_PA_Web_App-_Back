@@ -37,8 +37,6 @@ const testDbConnection = async () => {
 	}
 };
 
-// Appelons cette fonction après avoir démarré le serveur
-testDbConnection();
 
 app.post('/webhook', express.raw({ type: 'application/json' }), (request, response) => {
 	const sig = request.headers['stripe-signature'];
@@ -57,6 +55,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (request, respon
 		case 'checkout.session.completed':
 			const session = event.data.object;
 			console.log('Session: ', event.type);
+			testDbConnection();
 			handleCheckoutSessionCompleted(session);
 			break;
 		default:
