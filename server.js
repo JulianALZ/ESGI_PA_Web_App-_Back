@@ -96,6 +96,7 @@ const createTables = async () => {
 	} catch (err) {
 		console.error('Error creating tables:', err);
 	} finally {
+		console.log('end handleCheckoutSessionCompleted');
 		client.release();
 	}
 };
