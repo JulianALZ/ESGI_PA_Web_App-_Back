@@ -20,6 +20,9 @@ const pool = new Pool({
 	port: 5432,
 });
 
+// Définir endpointSecret ici
+const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez par votre secret de Webhook Stripe
+
 app.use(bodyParser.json());
 app.use(cors());
 
