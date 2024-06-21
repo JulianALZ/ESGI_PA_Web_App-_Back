@@ -22,7 +22,51 @@ const pool = new Pool({
 
 app.use(bodyParser.json());
 app.use(cors());
-app.use(bodyParser.raw({ type: 'application/json' })); // Ajouté pour traiter le payload brut des webhooks
+
+// Route pour les webhooks Stripe, avec le middleware bodyParser.raw
+app.post('/webhook', express.raw({ type: 'application/json' }), (request, response) => {
+	const sig = request.headers['stripe-signature'];
+
+	let event;
+
+	try {
+		event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+		console.log('Webhook event received:', event);
+	} catch (err) {
+		console.log(`⚠️  Webhook signature verification failed.`, err.message);
+		return response.sendStatus(400);
+	}
+
+	switch (event.type) {
+		case 'checkout.session.completed':
+			const session = event.data.object;
+			handleCheckoutSessionCompleted(session);
+			break;
+		default:
+			console.log(`Unhandled event type ${event.type}`);
+	}
+
+	response.json({ received: true });
+});
+
+const handleCheckoutSessionCompleted = async (session) => {
+	const client = await pool.connect();
+	try {
+		const userId = 1; // Utiliser l'ID de l'utilisateur en brut
+		console.log('Session completed:', session);
+
+		// Ajoutez la transaction à la base de données
+		await client.query(
+			'INSERT INTO user_action_history (deposit, wallet, gain, user_id) VALUES ($1, $2, $3, $4)',
+			[session.amount_total / 100, 0, 0, userId]
+		);
+		console.log('Transaction recorded for user:', userId);
+	} catch (err) {
+		console.error('Error recording transaction:', err);
+	} finally {
+		client.release();
+	}
+};
 
 const createTables = async () => {
 	const client = await pool.connect();
@@ -94,52 +138,6 @@ app.post('/api/register', async (req, res) => {
 		client.release();
 	}
 });
-
-const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez par votre secret de Webhook Stripe
-
-app.post('/webhook', (request, response) => {
-	const sig = request.headers['stripe-signature'];
-
-	let event;
-
-	try {
-		event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
-		console.log('Webhook event received:', event);
-	} catch (err) {
-		console.log(`⚠️  Webhook signature verification failed.`, err.message);
-		return response.sendStatus(400);
-	}
-
-	switch (event.type) {
-		case 'checkout.session.completed':
-			const session = event.data.object;
-			handleCheckoutSessionCompleted(session);
-			break;
-		default:
-			console.log(`Unhandled event type ${event.type}`);
-	}
-
-	response.json({ received: true });
-});
-
-const handleCheckoutSessionCompleted = async (session) => {
-	const client = await pool.connect();
-	try {
-		const userId = 1; // Utiliser l'ID de l'utilisateur en brut
-		console.log('Session completed:', session);
-
-		// Ajoutez la transaction à la base de données
-		await client.query(
-			'INSERT INTO user_action_history (deposit, wallet, gain, user_id) VALUES ($1, $2, $3, $4)',
-			[session.amount_total / 100, 0, 0, userId]
-		);
-		console.log('Transaction recorded for user:', userId);
-	} catch (err) {
-		console.error('Error recording transaction:', err);
-	} finally {
-		client.release();
-	}
-};
 
 app.get('/', (req, res) => {
 	res.send('Server is running');
