@@ -20,13 +20,12 @@ const pool = new Pool({
 	port: 5432,
 });
 
-// Définir endpointSecret ici
 const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez par votre secret de Webhook Stripe
 
 app.use(bodyParser.json());
 app.use(cors());
 
-// Route pour les webhooks Stripe, avec le middleware bodyParser.raw
+// Route pour les webhooks Stripe, avec le middleware express.raw pour traiter le payload brut
 app.post('/webhook', express.raw({ type: 'application/json' }), (request, response) => {
 	const sig = request.headers['stripe-signature'];
 
