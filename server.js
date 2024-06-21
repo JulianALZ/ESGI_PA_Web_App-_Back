@@ -21,8 +21,6 @@ const pool = new Pool({
 		rejectUnauthorized: false
 	},
 	port: 5432,
-	max: 10, // Limite le nombre de connexions simultanées
-	idleTimeoutMillis: 30000, // Ferme les connexions inactives après 30 secondes
 	connectionTimeoutMillis: 10000, // Timeout après 5 secondes si la connexion n'est pas établie
 });
 
