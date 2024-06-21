@@ -27,6 +27,7 @@ app.use(cors());
 // Vérifions la connexion à la base de données après le démarrage du serveur
 const testDbConnection = async () => {
 	try {
+		console.log('Test DB connection pending');
 		const client = await pool.connect();
 		console.log('Test DB connection established');
 		const testQuery = await client.query('SELECT NOW()');
