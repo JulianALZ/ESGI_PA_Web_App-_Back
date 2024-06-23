@@ -262,7 +262,7 @@ app.get('/api/wallet-historic', async (req, res) => {
 	const period = 'allTime';
 
 	try {
-		await client.connect();
+		const client = await pool.connect();
 
 		let periodCondition;
 
@@ -319,7 +319,7 @@ app.get('/api/wallet-historic', async (req, res) => {
 		console.log('Erreur lors de la récupération des transactions:', err);
 		res.status(500).send('Erreur lors de la récupération des transactions');
 	} finally {
-		await client.end();
+		client.release();
 	}
 });
 
