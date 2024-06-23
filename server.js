@@ -147,6 +147,8 @@ async function getAccountPortfolioGain(startDate) {
 
 	const startWallet = historicalData.equity[0];
 	const currentWallet = historicalData.equity[historicalData.equity.length - 1];
+	console.log("currentWallet === ", currentWallet);
+	console.log("startWallet === ", startWallet);
 
 	logInfo(`getAccountPortfolioGain result: ${[1 - (currentWallet - startWallet) / startWallet, currentDate]}`);
 	return [1 - (currentWallet - startWallet) / startWallet, currentDate];
@@ -173,7 +175,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 				GROUP BY user_id
 			);
 		`);
-
+		logInfo(`data recover for UserWalletHistoric table for user: ${userId}`);
 		for (let row of res.rows) {
 			const userId = row.user_id;
 			let newMontant = row.wallet * gain;
