@@ -127,7 +127,7 @@ async function getAccountPortfolioGain(startDate) {
 		"APCA-API-SECRET-KEY": SECRET_KEY_ALPACA
 	};
 
-	startDate = new DateTime(startDate)
+	startDate = DateTime(startDate)
 	const currentDate = DateTime.utc().toISO({ suppressMilliseconds: true });
 	const startISO = startDate.toUTC().toISO({ suppressMilliseconds: true });
 
@@ -193,8 +193,6 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 		}
 	} catch (err) {
 		logError('Error recording transaction', err);
-	} finally {
-		client.release();
 	}
 }
 
