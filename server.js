@@ -128,8 +128,6 @@ async function getAccountPortfolioGain(startDate) {
 	};
 	startDate = startDate.toISOString()
 	startDate = DateTime.fromISO(startDate, { zone: 'utc' });
-	console.log("startDate as DateTime == ", startDate); // Affiche l'objet DateTime
-	console.log("startDate ou startISO == ", startDate.toISO({ suppressMilliseconds: true }));
 
 	const currentDate = DateTime.utc().toISO({ suppressMilliseconds: true });
 	const startISO = startDate.toISO({ suppressMilliseconds: true });
@@ -146,7 +144,6 @@ async function getAccountPortfolioGain(startDate) {
 
 	const response = await fetch(`${url}&${params.toString()}`, { headers });
 	const historicalData = await response.json();
-	console.log("historicalData ==== ", historicalData);
 
 	const startWallet = historicalData.equity[0];
 	const currentWallet = historicalData.equity[historicalData.equity.length - 1];
