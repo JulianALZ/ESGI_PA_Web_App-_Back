@@ -220,11 +220,23 @@ const createTables = async () => {
 		`);
 		await client.query(`
 			CREATE TABLE IF NOT EXISTS UserWalletHistoric(
+				id SERIAL PRIMARY KEY,
 				wallet NUMERIC NOT NULL,
 				date TIMESTAMP NOT NULL,
 				user_id INTEGER REFERENCES users(id)
 			);
 		`);
+
+		// Vérifiez si la table user_action_history est vide et insérez une ligne par défaut si elle est vide
+		const result = await client.query('SELECT COUNT(*) FROM user_action_history');
+		const count = parseInt(result.rows[0].count, 10);
+		if (count === 0) {
+			await client.query(`
+				INSERT INTO user_action_history (deposit, wallet, gain, date, user_id)
+				VALUES (0, 0, 0, '2024-06-23 13:59:29', NULL);
+			`);
+		}
+
 		logInfo('Tables created successfully');
 	} catch (err) {
 		logError('Error creating tables', err);
@@ -275,7 +287,13 @@ app.post('/api/register', async (req, res) => {
 		}
 
 		const hashedPassword = await bcrypt.hash(password, 10);
-		await client.query('INSERT INTO users (username, password) VALUES ($1, $2)', [username, hashedPassword]);
+		const userResult = await client.query('INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id', [username, hashedPassword]);
+		const userId = userResult.rows[0].id;
+		const currentDate = new Date();
+
+		// Insérez une ligne par défaut dans UserWalletHistoric pour le nouvel utilisateur
+		await client.query('INSERT INTO UserWalletHistoric (wallet, date, user_id) VALUES ($1, $2, $3)', [0, currentDate, userId]);
+
 		res.status(201).send('User created');
 	} catch (err) {
 		logError('Error executing query', err);
