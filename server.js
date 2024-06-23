@@ -130,9 +130,8 @@ async function getAccountPortfolioGain(startDate) {
 	console.log("currentDate v1 === ",   DateTime.utc())
 	console.log("currentDate v2 === ",   DateTime.utc().toISO({ suppressMilliseconds: true }))
 
-	console.log("startISO v1 === ",  DateTime.fromISO(startDate))
-	console.log("startISO v2 === ",  DateTime.fromISO(startDate).toUTC())
-	console.log("startISO v3 === ",  DateTime.fromISO(startDate).toUTC().toISO({ suppressMilliseconds: true }))
+	console.log("startISO v2 === ",  startDate.toUTC())
+	console.log("startISO v3 === ",  startDate.toUTC().toISO({ suppressMilliseconds: true }))
 
 	const currentDate = DateTime.utc().toISO({ suppressMilliseconds: true });
 	const startISO = DateTime.fromISO(startDate).toUTC().toISO({ suppressMilliseconds: true });
