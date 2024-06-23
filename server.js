@@ -132,9 +132,6 @@ async function getAccountPortfolioGain(startDate) {
 	const currentDate = DateTime.utc().toISO({ suppressMilliseconds: true });
 	const startISO = startDate.toISO({ suppressMilliseconds: true });
 
-	console.log("currentDate  === ",  currentDate)
-	console.log("startISO === ",   startISO)
-
 	const params = new URLSearchParams({
 		"timeframe": "1Min",
 		"start": startISO,
@@ -147,8 +144,6 @@ async function getAccountPortfolioGain(startDate) {
 
 	const startWallet = historicalData.equity[0];
 	const currentWallet = historicalData.equity[historicalData.equity.length - 1];
-	console.log("currentWallet === ", currentWallet);
-	console.log("startWallet === ", startWallet);
 
 	logInfo(`getAccountPortfolioGain result: ${[1 - (currentWallet - startWallet) / startWallet, currentDate]}`);
 	return [1 - (currentWallet - startWallet) / startWallet, currentDate];
@@ -178,12 +173,12 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 		logInfo(`data recover for UserWalletHistoric table for user: ${userId}`);
 		console.log("res.rows == ", res.rows);
 		for (let row of res.rows) {
-			const userId = row.user_id;
+			const user_id_UserWalletHistoric = row.user_id;
 			console.log("userId == " ,userId);
 			let newMontant = row.wallet * gain;
 
 			// Ajouter un montant supplémentaire pour l'utilisateur 1
-			if (userId === user_id) {
+			if (userId === user_id_UserWalletHistoric) {
 				newMontant += deposit;
 			}
 
@@ -191,7 +186,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 			await client.query(`
 				INSERT INTO UserWalletHistoric (user_id, wallet, date)
 				VALUES ($1, $2, $3);
-			`, [userId, newMontant, date]);
+			`, [user_id_UserWalletHistoric, newMontant, date]);
 
 			logInfo(`Transaction succeed for user: ${userId}`);
 		}
