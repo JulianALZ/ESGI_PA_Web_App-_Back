@@ -261,10 +261,10 @@ app.get('/api/wallet-historic', async (req, res) => {
 	const userId = 1;
 	const period = 'allTime';
 
-	try {
-		const client = await pool.connect();
+	const client = await pool.connect();
 
-		let periodCondition;
+	try {
+		let periodCondition = '';
 
 		switch (period) {
 			case 'last24Hours':
@@ -280,9 +280,9 @@ app.get('/api/wallet-historic', async (req, res) => {
 				console.log(`periodCondition = lastMonth`) ;
 				break;
 			case 'allTime':
+				console.log(`periodCondition = allTime`)
+				break;
 			default:
-				periodCondition = "allTime";
-				console.log(`periodCondition = allTime`) ;
 				break;
 		}
 
