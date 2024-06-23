@@ -21,117 +21,203 @@ const pool = new Pool({
 		rejectUnauthorized: false
 	},
 	port: 5432,
-	connectionTimeoutMillis: 10000, // Timeout après 5 secondes si la connexion n'est pas établie
+	connectionTimeoutMillis: 60000, // Timeout après 60 secondes si la connexion n'est pas établie
 });
 
 const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez par votre secret de Webhook Stripe
 
 app.use(cors());
 
-const delay = ms => new Promise(res => setTimeout(res, ms));
-
-const connectWithRetry = async (retries = 5, delayMs = 5000) => {
-	while (retries > 0) {
-		try {
-			const client = await pool.connect();
-			console.log('Database connection established');
-			return client;
-		} catch (err) {
-			console.error('Error acquiring client, retries left:', retries - 1, err.stack);
-			retries -= 1;
-			if (retries === 0) throw err;
-			await delay(delayMs);
-		}
-	}
+const logError = (message, err) => {
+	console.error(`${message}: ${err.stack}`);
 };
 
-// Test de la connexion à la base de données
+const logInfo = (message) => {
+	console.log(`${message}`);
+};
+
 const testDbConnection = async () => {
+	logInfo('Testing database connection');
 	try {
-		const client = await connectWithRetry();
+		const client = await pool.connect();
 		const testQuery = await client.query('SELECT NOW()');
-		console.log('Test query result:', testQuery.rows[0]);
+		logInfo('Test query result:', testQuery.rows[0]);
 		client.release();
 	} catch (err) {
-		console.error('Error testing DB connection:', err);
+		logError('Error testing DB connection', err);
 	}
 };
 
 testDbConnection();
 
-app.post('/webhook', express.raw({ type: 'application/json' }), (request, response) => {
+app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
+	logInfo('Received webhook event');
 	const sig = request.headers['stripe-signature'];
 
 	let event;
 
 	try {
 		event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
-		console.log('Webhook event received:', event);
+		logInfo('Webhook event received:', event);
 	} catch (err) {
-		console.log(`⚠️  Webhook signature verification failed.`, err.message);
+		logError('⚠️  Webhook signature verification failed', err);
 		return response.sendStatus(400);
 	}
 
-	switch (event.type) {
-		case 'checkout.session.completed':
-			const session = event.data.object;
-			console.log('Session:', event.type);
-			handleCheckoutSessionCompleted(session);
-			break;
-		default:
-			console.log(`Unhandled event type ${event.type}`);
+	if (event.type === 'checkout.session.completed') {
+		const session = event.data.object;
+		logInfo('Handling checkout.session.completed event');
+		await handleCheckoutSessionCompleted(session);
 	}
 
 	response.json({ received: true });
 });
 
 const handleCheckoutSessionCompleted = async (session) => {
-	console.log('Entered handleCheckoutSessionCompleted'); // Log pour vérifier que la fonction est bien appelée
+	logInfo('Entered handleCheckoutSessionCompleted');
 
 	try {
-		console.log('Trying to connect to the database');
-		const client = await connectWithRetry();
-		console.log('Database connection established');
+		const client = await pool.connect();
+		logInfo('Database connection established');
 
 		const userId = 1; // Utiliser l'ID de l'utilisateur en brut pour le moment
 		const amount = session.amount_total / 100; // Assurez-vous de convertir en unité monétaire correcte
-		console.log('Processing session completed for user:', userId, 'with amount:', amount);
+		logInfo(`Processing session completed for user: ${userId} with amount: ${amount}`);
 
+		// Récupérer la dernière valeur du wallet
 		const result = await client.query(
-			'INSERT INTO user_action_history (deposit, wallet, gain, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
-			[amount, 0, 0, userId]
+			`SELECT wallet, date
+			FROM user_action_history
+			ORDER BY date DESC
+			LIMIT 1`
 		);
-		console.log('Transaction recorded for user:', userId, 'Result:', result.rows[0]);
+		const lastRecord = result.rows[0];
+		const lastWallet = lastRecord.wallet;
+		const lastDate = lastRecord.date;
+
+		// Récupérer la valeur
+		const resultGain = await getAccountPortfolioGain(lastDate);
+		const gain = resultGain[0];
+		const currentDate = resultGain[1];
+
+		// Ajoutez la transaction à la base de données
+		await insertUserActionHistoric(client, amount, lastWallet, gain, currentDate, userId);
 
 		client.release();
-		console.log('Client connection released');
+		logInfo('Client connection released');
 	} catch (err) {
-		console.error('Error in handleCheckoutSessionCompleted:', err);
+		logError('Error in handleCheckoutSessionCompleted', err);
 	}
 };
 
+async function getAccountPortfolioGain(startDate) {
+	logInfo('Entered getAccountPortfolioGain');
+	const API_KEY_ALPACA = "PK6JZ801EW6DBNNTWTCA";
+	const SECRET_KEY_ALPACA = "Xz9Uhcs96hYrJYH2Z4v2dOpqTdT8SVTxwGX5XpA3";
+	const url = "https://paper-api.alpaca.markets/v2/account/portfolio/history?pnl_reset=no_reset";
+
+	const headers = {
+		"accept": "application/json",
+		"APCA-API-KEY-ID": API_KEY_ALPACA,
+		"APCA-API-SECRET-KEY": SECRET_KEY_ALPACA
+	};
+
+	const currentDate = DateTime.utc().toISO({ suppressMilliseconds: true });
+	const startISO = DateTime.fromISO(startDate).toUTC().toISO({ suppressMilliseconds: true });
+
+	const params = new URLSearchParams({
+		"timeframe": "1Min",
+		"start": startISO,
+		"end": currentDate,
+		"intraday_reporting": "continuous"
+	});
+
+	const response = await fetch(`${url}&${params.toString()}`, { headers });
+	const historicalData = await response.json();
+
+	const startWallet = historicalData.equity[0];
+	const currentWallet = historicalData.equity[historicalData.equity.length - 1];
+
+	logInfo(`getAccountPortfolioGain result: ${[1 - (currentWallet - startWallet) / startWallet, currentDate]}`);
+	return [1 - (currentWallet - startWallet) / startWallet, currentDate];
+}
+
+async function insertUserActionHistoric(client, deposit, lastWallet, gain, date, userId) {
+	try {
+		logInfo('Starting insertUserActionHistoric');
+		// Ajoutez la transaction à la base de données
+		await client.query(
+			'INSERT INTO user_action_history (deposit, wallet, gain, date, user_id) VALUES ($1, $2, $3, $4, $5)',
+			[deposit, lastWallet * gain + deposit, gain, date, userId]
+		);
+		logInfo(`Transaction recorded for user: ${userId}`);
+
+		// Mettre à jour l'historique des montants de chaque utilisateur
+		// Récupérer le dernier montant enregistré pour chaque utilisateur
+		const res = await client.query(`
+			SELECT user_id, montant
+			FROM UserWalletHistoric
+			WHERE (user_id, date) IN (
+				SELECT user_id, MAX(date)
+				FROM UserWalletHistoric
+				GROUP BY user_id
+			);
+		`);
+
+		for (let row of res.rows) {
+			const userId = row.user_id;
+			let newMontant = row.montant * gain;
+
+			// Ajouter un montant supplémentaire pour l'utilisateur 1
+			if (userId === user_id) {
+				newMontant += deposit;
+			}
+
+			// Insérer le nouveau montant dans la table
+			await client.query(`
+				INSERT INTO UserWalletHistoric (user_id, montant, date)
+				VALUES ($1, $2, $3);
+			`, [userId, newMontant, date]);
+
+			logInfo(`Transaction succeed for user: ${userId}`);
+		}
+	} catch (err) {
+		logError('Error recording transaction', err);
+	} finally {
+		client.release();
+	}
+}
+
 const createTables = async () => {
-	const client = await connectWithRetry();
+	const client = await pool.connect();
 	try {
 		await client.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username VARCHAR(255) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL
-            );
-        `);
+			CREATE TABLE IF NOT EXISTS users (
+				id SERIAL PRIMARY KEY,
+				username VARCHAR(255) UNIQUE NOT NULL,
+				password VARCHAR(255) NOT NULL
+			);
+		`);
 		await client.query(`
-            CREATE TABLE IF NOT EXISTS user_action_history (
-                id SERIAL PRIMARY KEY,
-                deposit NUMERIC NOT NULL,
-                wallet NUMERIC NOT NULL DEFAULT 0,
-                gain NUMERIC NOT NULL DEFAULT 0,
-                user_id INTEGER REFERENCES users(id)
-            );
-        `);
-		console.log('Tables created successfully');
+			CREATE TABLE IF NOT EXISTS user_action_history (
+				id SERIAL PRIMARY KEY,
+				deposit NUMERIC NOT NULL,
+				wallet NUMERIC NOT NULL,
+				gain NUMERIC NOT NULL,
+				date TIMESTAMP NOT NULL,
+				user_id INTEGER REFERENCES users(id)
+			);
+		`);
+		await client.query(`
+			CREATE TABLE IF NOT EXISTS UserWalletHistoric(
+				wallet NUMERIC NOT NULL,
+				date TIMESTAMP NOT NULL,
+				user_id INTEGER REFERENCES users(id)
+			);
+		`);
+		logInfo('Tables created successfully');
 	} catch (err) {
-		console.error('Error creating tables:', err);
+		logError('Error creating tables', err);
 	} finally {
 		client.release();
 	}
@@ -140,7 +226,7 @@ const createTables = async () => {
 // Créez les tables avant de démarrer le serveur
 createTables().then(() => {
 	app.listen(PORT, () => {
-		console.log(`Server running on http://localhost:${PORT}`);
+		logInfo(`Server running on http://localhost:${PORT}`);
 	});
 });
 
@@ -148,7 +234,7 @@ app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
 
 app.post('/api/login', async (req, res) => {
 	const { username, password } = req.body;
-	const client = await connectWithRetry();
+	const client = await pool.connect();
 
 	try {
 		const result = await client.query('SELECT * FROM users WHERE username = $1', [username]);
@@ -161,7 +247,7 @@ app.post('/api/login', async (req, res) => {
 			res.status(401).send('Invalid credentials');
 		}
 	} catch (err) {
-		console.error('Error executing query:', err);
+		logError('Error executing query', err);
 		res.status(500).send('Error executing query');
 	} finally {
 		client.release();
@@ -170,7 +256,7 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/register', async (req, res) => {
 	const { username, password } = req.body;
-	const client = await connectWithRetry();
+	const client = await pool.connect();
 
 	try {
 		const result = await client.query('SELECT * FROM users WHERE username = $1', [username]);
@@ -182,7 +268,7 @@ app.post('/api/register', async (req, res) => {
 		await client.query('INSERT INTO users (username, password) VALUES ($1, $2)', [username, hashedPassword]);
 		res.status(201).send('User created');
 	} catch (err) {
-		console.error('Error executing query:', err);
+		logError('Error executing query', err);
 		res.status(500).send('Error executing query');
 	} finally {
 		client.release();
