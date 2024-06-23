@@ -98,6 +98,8 @@ const handleCheckoutSessionCompleted = async (session) => {
 		const lastRecord = result.rows[0];
 		const lastWallet = lastRecord.wallet;
 		const lastDate = lastRecord.date;
+		console.log("lastRecord ===",  lastRecord);
+		console.log("lastDate === ", lastDate);
 
 		// Récupérer la valeur
 		const resultGain = await getAccountPortfolioGain(lastDate);
