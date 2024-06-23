@@ -98,7 +98,6 @@ const handleCheckoutSessionCompleted = async (session) => {
 		const lastRecord = result.rows[0];
 		const lastWallet = lastRecord.wallet;
 		const lastDate = lastRecord.date;
-		console.log("lastRecord ===",  lastRecord);
 		console.log("lastDate === ", lastDate);
 
 		// Récupérer la valeur
@@ -127,6 +126,13 @@ async function getAccountPortfolioGain(startDate) {
 		"APCA-API-KEY-ID": API_KEY_ALPACA,
 		"APCA-API-SECRET-KEY": SECRET_KEY_ALPACA
 	};
+
+	console.log("currentDate v1 === ",   DateTime.utc())
+	console.log("currentDate v2 === ",   DateTime.utc().toISO({ suppressMilliseconds: true }))
+
+	console.log("startISO v1 === ",  DateTime.fromISO(startDate))
+	console.log("startISO v2 === ",  DateTime.fromISO(startDate).toUTC())
+	console.log("startISO v3 === ",  DateTime.fromISO(startDate).toUTC().toISO({ suppressMilliseconds: true }))
 
 	const currentDate = DateTime.utc().toISO({ suppressMilliseconds: true });
 	const startISO = DateTime.fromISO(startDate).toUTC().toISO({ suppressMilliseconds: true });
