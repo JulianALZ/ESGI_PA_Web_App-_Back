@@ -127,15 +127,12 @@ async function getAccountPortfolioGain(startDate) {
 		"APCA-API-SECRET-KEY": SECRET_KEY_ALPACA
 	};
 
-	console.log("currentDate v1 === ",   DateTime.utc())
-	console.log("currentDate v2 === ",   DateTime.utc().toISO({ suppressMilliseconds: true }))
-
 	startDate = new DateTime(startDate)
-	console.log("startISO v2 === ",  startDate.toUTC())
-	console.log("startISO v3 === ",  startDate.toUTC().toISO({ suppressMilliseconds: true }))
-
 	const currentDate = DateTime.utc().toISO({ suppressMilliseconds: true });
-	const startISO = DateTime.fromISO(startDate).toUTC().toISO({ suppressMilliseconds: true });
+	const startISO = startDate.toUTC().toISO({ suppressMilliseconds: true });
+
+	console.log("currentDate  === ",  currentDate)
+	console.log("startISO === ",   startISO)
 
 	const params = new URLSearchParams({
 		"timeframe": "1Min",
@@ -168,7 +165,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 		// Mettre à jour l'historique des montants de chaque utilisateur
 		// Récupérer le dernier montant enregistré pour chaque utilisateur
 		const res = await client.query(`
-			SELECT user_id, montant
+			SELECT user_id, wallet
 			FROM UserWalletHistoric
 			WHERE (user_id, date) IN (
 				SELECT user_id, MAX(date)
@@ -179,7 +176,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 
 		for (let row of res.rows) {
 			const userId = row.user_id;
-			let newMontant = row.montant * gain;
+			let newMontant = row.wallet * gain;
 
 			// Ajouter un montant supplémentaire pour l'utilisateur 1
 			if (userId === user_id) {
@@ -188,7 +185,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 
 			// Insérer le nouveau montant dans la table
 			await client.query(`
-				INSERT INTO UserWalletHistoric (user_id, montant, date)
+				INSERT INTO UserWalletHistoric (user_id, wallet, date)
 				VALUES ($1, $2, $3);
 			`, [userId, newMontant, date]);
 
