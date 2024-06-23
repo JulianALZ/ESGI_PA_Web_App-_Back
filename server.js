@@ -235,6 +235,7 @@ const createTables = async () => {
 				INSERT INTO user_action_history (deposit, wallet, gain, date, user_id)
 				VALUES (0, 0, 0, '2024-06-23 13:59:29', NULL);
 			`);
+			logInfo('default row of user_action_history have been added');
 		}
 
 		logInfo('Tables created successfully');
@@ -252,7 +253,60 @@ createTables().then(() => {
 	});
 });
 
+
 app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
+
+async function getAllPositionsRepartition() {
+	const API_KEY_ALPACA = "PK6JZ801EW6DBNNTWTCA";
+	const SECRET_KEY_ALPACA = "Xz9Uhcs96hYrJYH2Z4v2dOpqTdT8SVTxwGX5XpA3";
+	const url = "https://paper-api.alpaca.markets/v2/positions";
+
+	const headers = {
+		"accept": "application/json",
+		"APCA-API-KEY-ID": API_KEY_ALPACA,
+		"APCA-API-SECRET-KEY": SECRET_KEY_ALPACA
+	};
+
+	try {
+		const response = await fetch(url, {
+			method: 'GET',
+			headers: headers
+		});
+
+		if (!response.ok) {
+			console.log(`getAllPositionsRepartition = HTTP error! Status: ${response.status}`) ;
+		}
+
+		const positions = await response.json();
+
+		const symbols = [];
+		const amounts = [];
+
+		positions.forEach(p => {
+			symbols.push(p['symbol']);
+			amounts.push(parseFloat(p['market_value']));
+		});
+
+		const total = amounts.reduce((acc, amount) => acc + amount, 0);
+		const percentages = amounts.map(amount => (amount / total) * 100);
+
+		return { symbols, percentages };
+	} catch (error) {
+		console.error('getAllPositionsRepartition = Error fetching positions:', error);
+		throw error;
+	}
+}
+
+// Route pour getAllPositionsRepartition
+app.get('/api/positions', async (req, res) => {
+	try {
+		console.log("start api positions")
+		const data = await getAllPositionsRepartition();
+		res.json(data);
+	} catch (error) {
+		res.status(500).send('api positions = Error fetching positions');
+	}
+});
 
 app.post('/api/login', async (req, res) => {
 	const { username, password } = req.body;
@@ -293,6 +347,7 @@ app.post('/api/register', async (req, res) => {
 
 		// Insérez une ligne par défaut dans UserWalletHistoric pour le nouvel utilisateur
 		await client.query('INSERT INTO UserWalletHistoric (wallet, date, user_id) VALUES ($1, $2, $3)', [0, currentDate, userId]);
+		console.log(" api register = default row of UserWalletHistoric have been added")
 
 		res.status(201).send('User created');
 	} catch (err) {
