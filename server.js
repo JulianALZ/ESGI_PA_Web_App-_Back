@@ -126,6 +126,7 @@ async function getAccountPortfolioGain(startDate) {
 		"APCA-API-KEY-ID": API_KEY_ALPACA,
 		"APCA-API-SECRET-KEY": SECRET_KEY_ALPACA
 	};
+	startDate = String(startDate);
 	console.log(typeof(startDate))
 	console.log("lastDate p2 === ", startDate)
 
