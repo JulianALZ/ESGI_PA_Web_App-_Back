@@ -176,8 +176,10 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 			);
 		`);
 		logInfo(`data recover for UserWalletHistoric table for user: ${userId}`);
+		console.log("res.rows == ", res.rows);
 		for (let row of res.rows) {
 			const userId = row.user_id;
+			console.log("userId == " ,userId);
 			let newMontant = row.wallet * gain;
 
 			// Ajouter un montant supplémentaire pour l'utilisateur 1
