@@ -254,6 +254,75 @@ createTables().then(() => {
 
 app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
 
+// Route API pour getWalletHistoric
+app.get('/api/wallet-historic', async (req, res) => {
+	console.log(`api/wallet-historic = start`) ;
+	// const { userId, period } = req.query;
+	const userId = 1;
+	const period = 'allTime';
+
+	try {
+		await client.connect();
+
+		let periodCondition;
+
+		switch (period) {
+			case 'last24Hours':
+				periodCondition = "AND date >= NOW() - INTERVAL '24 hours'";
+				console.log(`periodCondition = last24Hours`) ;
+				break;
+			case 'last7Days':
+				periodCondition = "AND date >= NOW() - INTERVAL '7 days'";
+				console.log(`periodCondition = last7Days`) ;
+				break;
+			case 'lastMonth':
+				periodCondition = "AND date >= NOW() - INTERVAL '1 month'";
+				console.log(`periodCondition = lastMonth`) ;
+				break;
+			case 'allTime':
+			default:
+				periodCondition = "allTime";
+				console.log(`periodCondition = allTime`) ;
+				break;
+		}
+
+		const query = `
+			SELECT wallet, date
+			FROM UserWalletHistoric
+			WHERE user_id = $1 ${periodCondition}
+			ORDER BY date ASC;
+		`;
+
+		const result = await client.query(query, [userId]);
+
+		const rows = result.rows;
+
+		const wallets = rows.map(row => row.wallet);
+		const dates = rows.map(row => row.date);
+		const lastWallet = wallets[wallets.length - 1];
+		const firstWallet = wallets[0];
+		const walletChange = lastWallet - firstWallet;
+		const percentageChange = (walletChange / firstWallet) * 100;
+
+		console.log(`wallets = `, wallets );
+		console.log(`walletChange = `, walletChange );
+		console.log(`percentageChange = `, percentageChange );
+
+		res.json({
+			wallets: wallets,
+			dates: dates,
+			lastWallet: lastWallet,
+			walletChange: walletChange,
+			percentageChange: percentageChange
+		});
+	} catch (err) {
+		console.log('Erreur lors de la récupération des transactions:', err);
+		res.status(500).send('Erreur lors de la récupération des transactions');
+	} finally {
+		await client.end();
+	}
+});
+
 async function getAllPositionsRepartition() {
 	const url = "https://paper-api.alpaca.markets/v2/positions";
 
