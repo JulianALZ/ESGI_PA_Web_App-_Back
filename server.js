@@ -127,11 +127,12 @@ async function getAccountPortfolioGain(startDate) {
 		"APCA-API-SECRET-KEY": SECRET_KEY_ALPACA
 	};
 
-	// startDate = new DateTime(startDate)
-	const currentDate = DateTime.utc().toISO({ suppressMilliseconds: true });
-	// const startISO = startDate.toUTC().toISO({ suppressMilliseconds: true });
+	startDate = new DateTime(startDate)
 
-	const startISO = startDate
+	console.log("startDate == ", startDate)
+	const currentDate = DateTime.utc().toISO({ suppressMilliseconds: true });
+	const startISO = startDate.toUTC().toISO({ suppressMilliseconds: true });
+
 	console.log("currentDate  === ",  currentDate)
 	console.log("startISO === ",   startISO)
 
