@@ -17,6 +17,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const SECRET_KEY = 'PA_ESGI_DB_WOW'; // Remplacez par votre clé secrète
 
+const API_KEY_ALPACA = "PKV15UO4V86ZU441S8OQ";
+const SECRET_KEY_ALPACA = "ddZjf91gaow2srhSkSfOGykiT8Fx9EJezquQScmt";
+
 
 
 const pool = new Pool({
@@ -117,8 +120,6 @@ const handleCheckoutSessionCompleted = async (session) => {
 
 async function getAccountPortfolioGain(startDate) {
 	logInfo('Entered getAccountPortfolioGain');
-	const API_KEY_ALPACA = "PK6JZ801EW6DBNNTWTCA";
-	const SECRET_KEY_ALPACA = "Xz9Uhcs96hYrJYH2Z4v2dOpqTdT8SVTxwGX5XpA3";
 	const url = "https://paper-api.alpaca.markets/v2/account/portfolio/history?pnl_reset=no_reset";
 
 	const headers = {
@@ -254,8 +255,6 @@ createTables().then(() => {
 app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
 
 async function getAllPositionsRepartition() {
-	const API_KEY_ALPACA = "PK6JZ801EW6DBNNTWTCA";
-	const SECRET_KEY_ALPACA = "Xz9Uhcs96hYrJYH2Z4v2dOpqTdT8SVTxwGX5XpA3";
 	const url = "https://paper-api.alpaca.markets/v2/positions";
 
 	const headers = {
