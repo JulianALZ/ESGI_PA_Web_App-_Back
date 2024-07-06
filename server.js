@@ -196,10 +196,17 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 	}
 }
 
+function UpdateTablesTimer(){
+	const json= {
+		"amount_total": 0,
+	}
+	handleCheckoutSessionCompleted(json)
+}
+
 // Intervalle en millisecondes (1 heure = 3600000 millisecondes )
 const oneHour = 10000;
 // Lancer la fonction toutes les heures
-setInterval(handleCheckoutSessionCompleted, oneHour);
+setInterval(UpdateTablesTimer, oneHour);
 
 const createTables = async () => {
 	const client = await pool.connect();
