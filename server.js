@@ -35,45 +35,36 @@ const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez pa
 
 app.use(cors());
 
-const logError = (message, err) => {
-	console.error(`${message}: ${err.stack}`);
-};
-
-const logInfo = (message) => {
-	console.log(`${message}`);
-};
 
 const testDbConnection = async () => {
-	logInfo('Testing database connection');
+	console.log('Testing database connection');
 	try {
 		const client = await pool.connect();
 		const testQuery = await client.query('SELECT NOW()');
-		logInfo('Test query result:', testQuery.rows[0]);
+		console.log('Test query result:', testQuery.rows[0]);
 		client.release();
 	} catch (err) {
-		logError('Error testing DB connection', err);
+		console.log('Error testing DB connection', err);
 	}
 };
 
 testDbConnection();
 
 app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
-	logInfo('Received webhook event');
+	console.log('Received webhook event');
 	const sig = request.headers['stripe-signature'];
-
 	let event;
 
 	try {
 		event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
-		logInfo('Webhook event received:', event);
 	} catch (err) {
-		logError('⚠️  Webhook signature verification failed', err);
+		console.log('⚠️  Webhook signature verification failed', err);
 		return response.sendStatus(400);
 	}
 
 	if (event.type === 'checkout.session.completed') {
 		const session = event.data.object;
-		logInfo('Handling checkout.session.completed event');
+		console.log('Handling checkout.session.completed event');
 		await handleCheckoutSessionCompleted(session);
 	}
 
@@ -81,15 +72,15 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (request, 
 });
 
 const handleCheckoutSessionCompleted = async (session) => {
-	logInfo('Entered handleCheckoutSessionCompleted');
+	console.log('Entered handleCheckoutSessionCompleted');
 
 	try {
 		const client = await pool.connect();
-		logInfo('Database connection established');
+		console.log('Database connection established');
 
 		const userId = 1; // Utiliser l'ID de l'utilisateur en brut pour le moment
 		const amount = session.amount_total / 100; // Assurez-vous de convertir en unité monétaire correcte
-		logInfo(`Processing session completed for user: ${userId} with amount: ${amount}`);
+		console.log(`Processing session completed for user: ${userId} with amount: ${amount}`);
 
 		// Récupérer la dernière valeur du wallet
 		const result = await client.query(
@@ -101,7 +92,6 @@ const handleCheckoutSessionCompleted = async (session) => {
 		const lastRecord = result.rows[0];
 		const lastWallet = lastRecord.wallet;
 		const lastDate = lastRecord.date;
-		console.log("lastDate === ", lastDate);
 
 		// Récupérer la valeur
 		const resultGain = await getAccountPortfolioGain(lastDate);
@@ -112,14 +102,14 @@ const handleCheckoutSessionCompleted = async (session) => {
 		await insertUserActionHistoric(client, amount, lastWallet, gain, currentDate, userId);
 
 		client.release();
-		logInfo('Client connection released');
+		console.log('Client connection released');
 	} catch (err) {
-		logError('Error in handleCheckoutSessionCompleted', err);
+		console.log('Error in handleCheckoutSessionCompleted', err);
 	}
 };
 
 async function getAccountPortfolioGain(startDate) {
-	logInfo('Entered getAccountPortfolioGain');
+	console.log('Entered getAccountPortfolioGain');
 	const url = "https://paper-api.alpaca.markets/v2/account/portfolio/history?pnl_reset=no_reset";
 
 	const headers = {
@@ -142,24 +132,23 @@ async function getAccountPortfolioGain(startDate) {
 
 	const response = await fetch(`${url}&${params.toString()}`, { headers });
 	const historicalData = await response.json();
-	console.log('historicalData', historicalData);
 
 	const startWallet = historicalData.equity[0];
 	const currentWallet = historicalData.equity[historicalData.equity.length - 1];
 
-	logInfo(`getAccountPortfolioGain result: ${[1 - (currentWallet - startWallet) / startWallet, currentDate]}`);
+	// console.log(`getAccountPortfolioGain result: ${[1 - (currentWallet - startWallet) / startWallet, currentDate]}`);
 	return [1 - (currentWallet - startWallet) / startWallet, currentDate];
 }
 
 async function insertUserActionHistoric(client, deposit, lastWallet, gain, date, userId) {
 	try {
-		logInfo('Starting insertUserActionHistoric');
+		console.log('Starting insertUserActionHistoric');
 		// Ajoutez la transaction à la base de données
 		await client.query(
 			'INSERT INTO user_action_history (deposit, wallet, gain, date, user_id) VALUES ($1, $2, $3, $4, $5)',
 			[deposit, lastWallet * gain + deposit, gain, date, userId]
 		);
-		logInfo(`Transaction recorded for user: ${userId}`);
+		console.log(`Transaction ask for user: ${userId}`);
 
 		// Mettre à jour l'historique des montants de chaque utilisateur
 		// Récupérer le dernier montant enregistré pour chaque utilisateur
@@ -172,7 +161,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 				GROUP BY user_id
 			);
 		`);
-		logInfo(`data recover for UserWalletHistoric table for user: ${userId}`);
+		console.log(`data recover for UserWalletHistoric table for user: ${userId}`);
 		console.log("res.rows == ", res.rows);
 		for (let row of res.rows) {
 			const user_id_UserWalletHistoric = row.user_id;
@@ -186,14 +175,14 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 
 			// Insérer le nouveau montant dans la table
 			await client.query(`
-				INSERT INTO UserWalletHistoric (user_id, wallet, date)
-				VALUES ($1, $2, $3);
-			`, [user_id_UserWalletHistoric, newMontant, date]);
+				INSERT INTO UserWalletHistoric (user_id, wallet, gain, date)
+				VALUES ($1, $2, $3, $4);
+			`, [user_id_UserWalletHistoric, newMontant, gain, date]);
 
-			logInfo(`Transaction succeed for user: ${userId}`);
+			console.log(`Transaction succeed for user: ${userId}`);
 		}
 	} catch (err) {
-		logError('Error recording transaction', err);
+		console.log('Error recording transaction', err);
 	}
 }
 
@@ -221,6 +210,7 @@ const createTables = async () => {
 			CREATE TABLE IF NOT EXISTS UserWalletHistoric(
 				id SERIAL PRIMARY KEY,
 				wallet NUMERIC NOT NULL,
+				gain NUMERIC NOT NULL,
 				date TIMESTAMP NOT NULL,
 				user_id INTEGER REFERENCES users(id)
 			);
@@ -234,12 +224,12 @@ const createTables = async () => {
 				INSERT INTO user_action_history (deposit, wallet, gain, date, user_id)
 				VALUES (0, 0, 0, '2024-06-23 13:59:29', NULL);
 			`);
-			logInfo('default row of user_action_history have been added');
+			console.log('default row of user_action_history have been added');
 		}
 
-		logInfo('Tables created successfully');
+		console.log('Tables created successfully');
 	} catch (err) {
-		logError('Error creating tables', err);
+		console.log('Error creating tables', err);
 	} finally {
 		client.release();
 	}
@@ -248,7 +238,7 @@ const createTables = async () => {
 // Créez les tables avant de démarrer le serveur
 createTables().then(() => {
 	app.listen(PORT, () => {
-		logInfo(`Server running on http://localhost:${PORT}`);
+		console.log(`Server running on http://localhost:${PORT}`);
 	});
 });
 
@@ -288,22 +278,24 @@ app.get('/api/wallet-historic', async (req, res) => {
 		}
 
 		const query = `
-			SELECT wallet, date
-			FROM UserWalletHistoric
-			WHERE user_id = $1 ${periodCondition}
-			ORDER BY date ASC;
-		`;
+            SELECT wallet, gain, date
+            FROM UserWalletHistoric
+            WHERE user_id = $1 ${periodCondition}
+            ORDER BY date ASC;
+        `;
 
 		const result = await client.query(query, [userId]);
-
 		const rows = result.rows;
 
 		const wallets = rows.map(row => row.wallet);
 		const dates = rows.map(row => row.date);
+		const gains = rows.map(row => row.gain);
 		const lastWallet = wallets[wallets.length - 1];
-		const firstWallet = wallets[0];
-		const walletChange = lastWallet - firstWallet;
-		const percentageChange = (walletChange / firstWallet) * 100;
+		// Calculer le produit de tous les gains sauf le premier terme
+		const productOfGains = gains.slice(1).reduce((acc, gain) => acc * gain, 1);
+
+		// Calculer le changement en pourcentage par rapport au premier terme
+		const percentageChange = (productOfGains - 1) * 100;
 
 		console.log(`wallets = `, wallets );
 		console.log(`walletChange = `, walletChange );
@@ -313,7 +305,6 @@ app.get('/api/wallet-historic', async (req, res) => {
 			wallets: wallets,
 			dates: dates,
 			lastWallet: lastWallet,
-			walletChange: walletChange,
 			percentageChange: percentageChange
 		});
 	} catch (err) {
