@@ -200,11 +200,13 @@ function UpdateTablesTimer(){
 	const json= {
 		"amount_total": 0,
 	}
+	console.log('Enter in UpdateTablesTimer ');
 	handleCheckoutSessionCompleted(json)
+	console.log('ends in UpdateTablesTimer ');
 }
 
 // Intervalle en millisecondes (1 heure = 3600000 millisecondes )
-const oneHour = 10000;
+const oneHour = 120000;
 // Lancer la fonction toutes les heures
 setInterval(UpdateTablesTimer, oneHour);
 
