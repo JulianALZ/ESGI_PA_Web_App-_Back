@@ -196,6 +196,11 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 	}
 }
 
+// Intervalle en millisecondes (1 heure = 3600000 millisecondes )
+const oneHour = 3600;
+// Lancer la fonction toutes les heures
+setInterval(handleCheckoutSessionCompleted, oneHour);
+
 const createTables = async () => {
 	const client = await pool.connect();
 	try {
@@ -424,3 +429,6 @@ app.post('/api/register', async (req, res) => {
 app.get('/', (req, res) => {
 	res.send('Server is running');
 });
+
+
+
