@@ -171,7 +171,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 			await client.query(`
 				INSERT INTO UserWalletHistoric (user_id, wallet, gain, date)
 				VALUES ($1, $2, $3, $4);
-			`, [userId, 0, gain, date]);
+			`, [userId, lastWallet, gain, date]);
 		}
 		for (let row of res.rows) {
 			const user_id_UserWalletHistoric = row.user_id;
