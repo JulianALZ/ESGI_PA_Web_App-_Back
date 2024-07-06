@@ -120,9 +120,8 @@ const handleCheckoutSessionCompleted = async (session) => {
 
 async function getAccountPortfolioGain(startDate) {
 	logInfo('Entered getAccountPortfolioGain');
-	logInfo('test a');
 	const url = "https://paper-api.alpaca.markets/v2/account/portfolio/history?pnl_reset=no_reset";
-	logInfo('test b');
+
 	const headers = {
 		"accept": "application/json",
 		"APCA-API-KEY-ID": API_KEY_ALPACA,
@@ -130,12 +129,10 @@ async function getAccountPortfolioGain(startDate) {
 	};
 	startDate = startDate.toISOString()
 	startDate = DateTime.fromISO(startDate, { zone: 'utc' });
-	logInfo('test 1');
 
 	const currentDate = DateTime.utc().toISO({ suppressMilliseconds: true });
 	const startISO = startDate.toISO({ suppressMilliseconds: true });
 
-	logInfo('test 2');
 	const params = new URLSearchParams({
 		"timeframe": "1Min",
 		"start": startISO,
@@ -143,11 +140,9 @@ async function getAccountPortfolioGain(startDate) {
 		"intraday_reporting": "continuous"
 	});
 
-	logInfo('test 3');
 	const response = await fetch(`${url}&${params.toString()}`, { headers });
-	logInfo('test 4');
 	const historicalData = await response.json();
-	logInfo('historicalData', historicalData);
+	console.log('historicalData', historicalData);
 
 	const startWallet = historicalData.equity[0];
 	const currentWallet = historicalData.equity[historicalData.equity.length - 1];
