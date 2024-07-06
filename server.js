@@ -202,23 +202,6 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 	}
 }
 
-const UpdateTablesTimer= async () => {
-	try {
-		const json = {
-			"amount_total": 0,
-		}
-		console.log('Enter in UpdateTablesTimer ');
-		await handleCheckoutSessionCompleted(json)
-		console.log('ends in UpdateTablesTimer ');
-	}
-	catch (err) {}
-
-}
-
-// Intervalle en millisecondes (1 heure = 3600000 millisecondes )
-const oneHour = 120000;
-// Lancer la fonction toutes les heures
-setInterval(UpdateTablesTimer, oneHour);
 
 const createTables = async () => {
 	const client = await pool.connect();
@@ -287,7 +270,7 @@ app.post('/webhook', async (request, response) => {
 
 	if (event.type === 'checkout.session.completed') {
 		const session = event.data.object;
-		console.log('Handling checkout.session.completed event');
+		// console.log('Handling checkout.session.completed event');
 		await handleCheckoutSessionCompleted(session);
 	}
 
@@ -339,7 +322,7 @@ app.get('/api/wallet-historic', async (req, res) => {
             FROM user_action_history
             WHERE user_id = $1;
         `;
-		const result2 = await client.query(query, [userId]);
+		const result2 = await client.query(query2, [userId]);
 		const totalDeposit = result2.rows[0].total_deposit;
 
 		const result = await client.query(query, [userId]);
