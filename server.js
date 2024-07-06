@@ -73,20 +73,7 @@ testDbConnection();
 // 	response.json({ received: true });
 // });
 
-app.post('/webhook', async (request, response) => {
-	console.log('Received webhook event');
 
-	// Vous pouvez directement accéder à la requête et ses données
-	let event = request.body;
-
-	if (event.type === 'checkout.session.completed') {
-		const session = event.data.object;
-		console.log('Handling checkout.session.completed event');
-		await handleCheckoutSessionCompleted(session);
-	}
-
-	response.json({ received: true });
-});
 
 
 
@@ -291,6 +278,22 @@ createTables().then(() => {
 
 
 app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
+
+app.post('/webhook', async (request, response) => {
+	console.log('Received webhook event');
+
+	// Vous pouvez directement accéder à la requête et ses données
+	let event = request.body;
+
+	if (event.type === 'checkout.session.completed') {
+		const session = event.data.object;
+		console.log('Handling checkout.session.completed event');
+		await handleCheckoutSessionCompleted(session);
+	}
+
+	response.json({ received: true });
+});
+
 
 // Route API pour getWalletHistoric
 app.get('/api/wallet-historic', async (req, res) => {
