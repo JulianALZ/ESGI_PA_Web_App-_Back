@@ -197,7 +197,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 }
 
 // Intervalle en millisecondes (1 heure = 3600000 millisecondes )
-const oneHour = 3600;
+const oneHour = 10000;
 // Lancer la fonction toutes les heures
 setInterval(handleCheckoutSessionCompleted, oneHour);
 
