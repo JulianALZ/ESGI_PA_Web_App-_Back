@@ -134,7 +134,7 @@ async function getAccountPortfolioGain(startDate) {
 	const startISO = startDate.toISO({ suppressMilliseconds: true });
 
 	const params = new URLSearchParams({
-		"timeframe": "1Min",
+		"timeframe": "1H",
 		"start": startISO,
 		"end": currentDate,
 		"intraday_reporting": "continuous"
