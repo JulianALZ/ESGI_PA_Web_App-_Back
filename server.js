@@ -124,7 +124,7 @@ async function getAccountPortfolioGain(startDate) {
 	const startISO = startDate.toISO({ suppressMilliseconds: true });
 
 	const params = new URLSearchParams({
-		"timeframe": "1H",
+		"timeframe": "1Min",
 		"start": startISO,
 		"end": currentDate,
 		"intraday_reporting": "continuous"
@@ -163,6 +163,16 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 		`);
 		console.log(`data recover for UserWalletHistoric table for user: ${userId}`);
 		console.log("res.rows == ", res.rows);
+		const userIds = res.rows.map(row => row.user_id);
+
+		const isPresent = userIds.includes(userId);
+		if (!isPresent) {
+			console.log(`add init line for user`, {userId});
+			await client.query(`
+				INSERT INTO UserWalletHistoric (userId, wallet, gain, date)
+				VALUES ($1, $2, $3, $4);
+			`, [userId, 0, gain, date]);
+		}
 		for (let row of res.rows) {
 			const user_id_UserWalletHistoric = row.user_id;
 			console.log("userId == ",userId);
@@ -296,10 +306,6 @@ app.get('/api/wallet-historic', async (req, res) => {
 
 		// Calculer le changement en pourcentage par rapport au premier terme
 		const percentageChange = (productOfGains - 1) * 100;
-
-		console.log(`wallets = `, wallets );
-		console.log(`walletChange = `, walletChange );
-		console.log(`percentageChange = `, percentageChange );
 
 		res.json({
 			wallets: wallets,
