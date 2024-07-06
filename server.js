@@ -50,21 +50,34 @@ const testDbConnection = async () => {
 
 testDbConnection();
 
-app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
+// app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
+// 	console.log('Received webhook event');
+// 	const sig = request.headers['stripe-signature'];
+// 	console.log('request =/=/=/= ', request);
+// 	let event;
+//
+// 	try {
+// 		event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+//
+// 	} catch (err) {
+// 		console.log('⚠️  Webhook signature verification failed', err);
+// 		return response.sendStatus(400);
+// 	}
+//
+// 	if (event.type === 'checkout.session.completed') {
+// 		const session = event.data.object;
+// 		console.log('Handling checkout.session.completed event');
+// 		await handleCheckoutSessionCompleted(session);
+// 	}
+//
+// 	response.json({ received: true });
+// });
+
+app.post('/webhook', async (request, response) => {
 	console.log('Received webhook event');
-	const sig = request.headers['stripe-signature'];
-	console.log('sig  =/=/=/= ', sig);
-	console.log('request =/=/=/= ', request);
 
-	let event;
-
-	try {
-		event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
-
-	} catch (err) {
-		console.log('⚠️  Webhook signature verification failed', err);
-		return response.sendStatus(400);
-	}
+	// Vous pouvez directement accéder à la requête et ses données
+	let event = request.body;
 
 	if (event.type === 'checkout.session.completed') {
 		const session = event.data.object;
