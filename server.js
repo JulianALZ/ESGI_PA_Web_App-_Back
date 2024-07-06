@@ -50,17 +50,32 @@ const testDbConnection = async () => {
 
 testDbConnection();
 
-app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
-	console.log('Received webhook event');
-	const sig = request.headers['stripe-signature'];
-	let event;
+// app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
+// 	console.log('Received webhook event');
+// 	const sig = request.headers['stripe-signature'];
+// 	let event;
+//
+// 	try {
+// 		event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+// 	} catch (err) {
+// 		console.log('⚠️  Webhook signature verification failed', err);
+// 		return response.sendStatus(400);
+// 	}
+//
+// 	if (event.type === 'checkout.session.completed') {
+// 		const session = event.data.object;
+// 		console.log('Handling checkout.session.completed event');
+// 		await handleCheckoutSessionCompleted(session);
+// 	}
+//
+// 	response.json({ received: true });
+// });
 
-	try {
-		event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
-	} catch (err) {
-		console.log('⚠️  Webhook signature verification failed', err);
-		return response.sendStatus(400);
-	}
+app.post('/webhook', async (request, response) => {
+	console.log('Received webhook event');
+
+	// Vous pouvez directement accéder à la requête et ses données
+	let event = request.body;
 
 	if (event.type === 'checkout.session.completed') {
 		const session = event.data.object;
@@ -196,13 +211,17 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 	}
 }
 
-async function UpdateTablesTimer() {
-	const json = {
-		"amount_total": 0,
+const UpdateTablesTimer= async () => {
+	try {
+		const json = {
+			"amount_total": 0,
+		}
+		console.log('Enter in UpdateTablesTimer ');
+		await handleCheckoutSessionCompleted(json)
+		console.log('ends in UpdateTablesTimer ');
 	}
-	console.log('Enter in UpdateTablesTimer ');
-	await handleCheckoutSessionCompleted(json)
-	console.log('ends in UpdateTablesTimer ');
+	catch (err) {}
+
 }
 
 // Intervalle en millisecondes (1 heure = 3600000 millisecondes )
@@ -308,6 +327,14 @@ app.get('/api/wallet-historic', async (req, res) => {
             ORDER BY date ASC;
         `;
 
+		const query2 = `
+            SELECT SUM(deposit) as total_deposit
+            FROM user_action_history
+            WHERE user_id = $1;
+        `;
+		const result2 = await client.query(query, [userId]);
+		const totalDeposit = result2.rows[0].total_deposit;
+
 		const result = await client.query(query, [userId]);
 		const rows = result.rows;
 
@@ -318,6 +345,9 @@ app.get('/api/wallet-historic', async (req, res) => {
 		// Calculer le produit de tous les gains sauf le premier terme
 		const productOfGains = gains.slice(1).reduce((acc, gain) => acc * gain, 1);
 
+		// Calculer le montant dû à l'évolution du gain
+		const change = lastWallet - totalDeposit
+
 		// Calculer le changement en pourcentage par rapport au premier terme
 		const percentageChange = (productOfGains - 1) * 100;
 
@@ -325,6 +355,7 @@ app.get('/api/wallet-historic', async (req, res) => {
 			wallets: wallets,
 			dates: dates,
 			lastWallet: lastWallet,
+			changeAmount: change,
 			percentageChange: percentageChange
 		});
 	} catch (err) {
