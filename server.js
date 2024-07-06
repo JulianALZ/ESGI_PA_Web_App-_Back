@@ -169,7 +169,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 		if (!isPresent) {
 			console.log(`add init line for user`, {userId});
 			await client.query(`
-				INSERT INTO UserWalletHistoric (userId, wallet, gain, date)
+				INSERT INTO UserWalletHistoric (user_id, wallet, gain, date)
 				VALUES ($1, $2, $3, $4);
 			`, [userId, 0, gain, date]);
 		}
