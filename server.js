@@ -196,12 +196,12 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 	}
 }
 
-function UpdateTablesTimer(){
-	const json= {
+async function UpdateTablesTimer() {
+	const json = {
 		"amount_total": 0,
 	}
 	console.log('Enter in UpdateTablesTimer ');
-	handleCheckoutSessionCompleted(json)
+	await handleCheckoutSessionCompleted(json)
 	console.log('ends in UpdateTablesTimer ');
 }
 
