@@ -261,9 +261,6 @@ app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
 
 app.post('/webhook', async (req, res) => {
 	console.log('Received webhook event');
-	console.log("request body = " ,req.body)
-	console.log("request headers =  " ,req.headers);
-	console.log("request body body =  " ,req.body.body);
 
 	try {
 		const event = req.body;
