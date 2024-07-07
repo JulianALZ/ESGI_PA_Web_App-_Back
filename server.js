@@ -161,6 +161,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 			// Ajouter un montant supplémentaire pour l'utilisateur
 			if (userId === user_id_UserWalletHistoric) {
 				newMontant += deposit;
+				console.log("newMontant = ", newMontant)
 			}
 
 			// Insérer le nouveau montant dans la table
@@ -169,7 +170,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 				VALUES ($1, $2, $3, $4);
 			`, [user_id_UserWalletHistoric, newMontant, gain, date]);
 
-			console.log(`Transaction succeed for user: ${userId}`);
+			console.log(`Transaction (insert) succeed for user: ${userId}`);
 		}
 	} catch (err) {
 		console.log('Error recording transaction', err);
