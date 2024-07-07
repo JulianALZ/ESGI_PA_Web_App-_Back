@@ -8,8 +8,8 @@ import cors from 'cors';
 import bcrypt from 'bcrypt';
 import pkg from 'pg';
 const { Pool } = pkg;
-import stripePackage from 'stripe';
-const stripe = stripePackage('sk_test_51PSnc4P6OFtHWfqTKEKGbqCyKlSrpQUzNtALbE1YxmYZSUb0DQllRPHM20qz4LSQtwzPTQ9x3ch4KrCDvc25ji4e00gIVM68wU'); // Remplacez par votre clé secrète Stripe
+// import stripePackage from 'stripe';
+// const stripe = stripePackage('sk_test_51PSnc4P6OFtHWfqTKEKGbqCyKlSrpQUzNtALbE1YxmYZSUb0DQllRPHM20qz4LSQtwzPTQ9x3ch4KrCDvc25ji4e00gIVM68wU'); // Remplacez par votre clé secrète Stripe
 import { DateTime } from 'luxon';
 
 
@@ -31,7 +31,7 @@ const pool = new Pool({
 	connectionTimeoutMillis: 60000, // Timeout après 60 secondes si la connexion n'est pas établie
 });
 
-const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez par votre secret de Webhook Stripe
+// const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez par votre secret de Webhook Stripe
 
 
 const testDbConnection = async () => {
