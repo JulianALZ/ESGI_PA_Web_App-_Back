@@ -122,13 +122,13 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 	try {
 		console.log('Starting insertUserActionHistoric');
 		// Ajoutez la transaction à la base de données
-		if(userId !== null){
-			await client.query(
-				'INSERT INTO user_action_history (deposit, wallet, gain, date, user_id) VALUES ($1, $2, $3, $4, $5)',
-				[deposit, lastWallet * gain + deposit, gain, date, userId]
-			);
-			console.log(`Transaction ask for user: ${userId}`);
-		}
+
+		await client.query(
+			'INSERT INTO user_action_history (deposit, wallet, gain, date, user_id) VALUES ($1, $2, $3, $4, $5)',
+			[deposit, lastWallet * gain + deposit, gain, date, userId]
+		);
+		console.log(`Transaction ask for user: ${userId}`);
+
 
 		// Récupérer le dernier montant enregistré pour chaque utilisateur
 		const res = await client.query(`
