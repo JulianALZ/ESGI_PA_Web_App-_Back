@@ -108,6 +108,7 @@ async function getAccountPortfolioGain(startDate) {
 
 	const response = await fetch(`${url}&${params.toString()}`, { headers });
 	const historicalData = await response.json();
+	console.log("historicalData =", historicalData);
 
 	const startWallet = historicalData.equity[0];
 	const currentWallet = historicalData.equity[historicalData.equity.length - 1];
