@@ -265,7 +265,8 @@ app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
 app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
 	console.log('Received webhook event');
 
-	let event = JSON.parse(request.body); // Convertir le corps brut en JSON
+	// let event = JSON.parse(request.body); // Convertir le corps brut en JSON
+	let event = request.body;
 
 	if (event.type === 'checkout.session.completed') {
 		const session = event.data.object;
