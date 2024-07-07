@@ -256,7 +256,7 @@ app.post('/webhook', async (req, res) => {
 });
 
 // Route API pour getWalletHistoric
-app.get('/api/wallet-historic', async (req, res) => {
+app.post('/api/wallet-historic', async (req, res) => {
 	console.log(`api/wallet-historic = start`) ;
 	// const { userId, period } = req.query;
 	const { userId} = req.query;
