@@ -50,6 +50,7 @@ testDbConnection();
 
 const handleCheckoutSessionCompleted = async (session, userId) => {
 	console.log('Entered handleCheckoutSessionCompleted');
+	await createTables()
 
 	try {
 		const client = await pool.connect();
@@ -108,7 +109,7 @@ async function getAccountPortfolioGain(startDate) {
 
 	const response = await fetch(`${url}&${params.toString()}`, { headers });
 	const historicalData = await response.json();
-	console.log("historicalData =", historicalData);
+	// console.log("historicalData =", historicalData);
 
 	const startWallet = historicalData.equity[0];
 	const currentWallet = historicalData.equity[historicalData.equity.length - 1];
@@ -128,7 +129,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 		console.log(`Transaction ask for user: ${userId}`);
 
 		// Récupérer le dernier montant enregistré pour chaque utilisateur
-		const res = await client.query(`
+		const res1 = await client.query(`
 			SELECT user_id, wallet
 			FROM UserWalletHistoric
 			WHERE (user_id, date) IN (
@@ -138,8 +139,8 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 			);
 		`);
 		console.log(`data recover for UserWalletHistoric table for user: ${userId}`);
-		console.log("res.rows == ", res.rows);
-		const userIds = res.rows.map(row => row.user_id);
+		console.log("res.rows == ", res1.rows);
+		const userIds = res1.rows.map(row => row.user_id);
 		console.log(`user_ids: ${userIds}`);
 
 		const isPresent = userIds.includes(parseInt(userId));
@@ -151,6 +152,17 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 				VALUES ($1, $2, $3, $4);
 			`, [userId, lastWallet, gain, date]);
 		}
+
+		// Récupérer le dernier montant enregistré pour chaque utilisateur
+		const res = await client.query(`
+			SELECT user_id, wallet
+			FROM UserWalletHistoric
+			WHERE (user_id, date) IN (
+				SELECT user_id, MAX(date)
+				FROM UserWalletHistoric
+				GROUP BY user_id
+			);
+		`);
 		for (let row of res.rows) {
 			const user_id_UserWalletHistoric = row.user_id;
 			console.log("userId == ",userId);
@@ -212,7 +224,7 @@ const createTables = async () => {
 		if (count === 0) {
 			await client.query(`
 				INSERT INTO user_action_history (deposit, wallet, gain, date, user_id)
-				VALUES (0, 0, 0, '2024-07-07 22:21:29', NULL);
+				VALUES (0, 0, 0, '2024-07-07 19:21:29', NULL);
 			`);
 			console.log('default row of user_action_history have been added');
 		}
