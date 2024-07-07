@@ -245,7 +245,8 @@ app.post('/webhook', async (req, res) => {
 
 		if (event.type === 'checkout.session.completed') {
 			const session = event.data.object;
-			const userId = event.data.client_reference_id
+			const userId = session.client_reference_id;
+			console.log('userId ', userId);
 			console.log('Handling checkout.session.completed event');
 			await handleCheckoutSessionCompleted(session, userId);
 		}
