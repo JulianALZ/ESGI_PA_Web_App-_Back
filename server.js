@@ -126,7 +126,6 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 		);
 		console.log(`Transaction ask for user: ${userId}`);
 
-		// Mettre à jour l'historique des montants de chaque utilisateur
 		// Récupérer le dernier montant enregistré pour chaque utilisateur
 		const res = await client.query(`
 			SELECT user_id, wallet
@@ -140,8 +139,10 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 		console.log(`data recover for UserWalletHistoric table for user: ${userId}`);
 		console.log("res.rows == ", res.rows);
 		const userIds = res.rows.map(row => row.user_id);
+		console.log(`user_ids: ${userIds}`);
 
 		const isPresent = userIds.includes(userId);
+		console.log("isPresent =", isPresent);
 		if (!isPresent) {
 			console.log(`add init line for user`, {userId});
 			await client.query(`
@@ -300,6 +301,7 @@ app.post('/api/wallet-historic', async (req, res) => {
             FROM user_action_history
             WHERE user_id = $1;
         `;
+
 		const result2 = await client.query(query2, [userId]);
 		const totalDeposit = result2.rows[0].total_deposit;
 
@@ -310,6 +312,7 @@ app.post('/api/wallet-historic', async (req, res) => {
 		const dates = rows.map(row => row.date);
 		const gains = rows.map(row => row.gain);
 		const lastWallet = wallets[wallets.length - 1];
+
 		// Calculer le produit de tous les gains sauf le premier terme
 		const productOfGains = gains.slice(1).reduce((acc, gain) => acc * gain, 1);
 
@@ -326,6 +329,9 @@ app.post('/api/wallet-historic', async (req, res) => {
 			changeAmount: change,
 			percentageChange: percentageChange
 		});
+
+		console.log(res)
+
 	} catch (err) {
 		console.log('Erreur lors de la récupération des transactions:', err);
 		res.status(500).send('Erreur lors de la récupération des transactions');
