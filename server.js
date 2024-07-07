@@ -71,31 +71,6 @@ testDbConnection();
 // 	response.json({ received: true });
 // });
 
-// Middleware pour traiter les requêtes JSON pour toutes les autres routes
-// Middleware pour parser le JSON
-app.use(bodyParser.json());
-
-app.post('/webhook', async (request, response) => {
-	console.log('Received webhook event');
-	console.log("request hh " ,request.body)
-
-	try {
-		const event = request.body;
-		console.log('Parsed event:', event);
-
-		if (event.type === 'checkout.session.completed') {
-			const session = event.data.object;
-			console.log('Handling checkout.session.completed event');
-			await handleCheckoutSessionCompleted(session);
-		}
-
-		response.json({ received: true });
-	} catch (err) {
-		console.error('Error handling webhook event:', err);
-		response.status(400).send(`Webhook Error: ${err.message}`);
-	}
-});
-
 
 
 const handleCheckoutSessionCompleted = async (session) => {
@@ -284,6 +259,28 @@ createTables().then(() => {
 
 app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
 
+app.post('/webhook', async (req, res) => {
+	console.log('Received webhook event');
+	console.log("request body = " ,req.body)
+	console.log("request headers =  " ,req.headers);
+	console.log("request body body =  " ,req.body.body);
+
+	try {
+		const event = req.body;
+		console.log('Parsed event:', event);
+
+		if (event.type === 'checkout.session.completed') {
+			const session = event.data.object;
+			console.log('Handling checkout.session.completed event');
+			await handleCheckoutSessionCompleted(session);
+		}
+
+		res.json({ received: true });
+	} catch (err) {
+		console.error('Error handling webhook event:', err);
+		res.status(400).send(`Webhook Error: ${err.message}`);
+	}
+});
 
 // Route API pour getWalletHistoric
 app.get('/api/wallet-historic', async (req, res) => {
