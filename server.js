@@ -33,8 +33,6 @@ const pool = new Pool({
 
 const endpointSecret = 'whsec_IsfxHwxOwleiSc3z2ev1ZgzlBsticFeX'; // Remplacez par votre secret de Webhook Stripe
 
-app.use(cors());
-
 
 const testDbConnection = async () => {
 	console.log('Testing database connection');
@@ -73,9 +71,28 @@ testDbConnection();
 // 	response.json({ received: true });
 // });
 
+app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
+	console.log('Received webhook event');
 
+	try {
+		// Convertir le Buffer en chaîne de caractères puis en objet JSON
+		const jsonString = request.body.toString('utf-8');
+		console.log('JSON string:', jsonString);
 
+		let event = JSON.parse(jsonString);
 
+		if (event.type === 'checkout.session.completed') {
+			const session = event.data.object;
+			console.log('Handling checkout.session.completed event');
+			await handleCheckoutSessionCompleted(session);
+		}
+
+		response.json({ received: true });
+	} catch (err) {
+		console.error('Error parsing webhook event:', err);
+		response.status(400).send(`Webhook Error: ${err.message}`);
+	}
+});
 
 const handleCheckoutSessionCompleted = async (session) => {
 	console.log('Entered handleCheckoutSessionCompleted');
@@ -202,6 +219,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 	}
 }
 
+app.use(cors());
 
 const createTables = async () => {
 	const client = await pool.connect();
@@ -259,34 +277,7 @@ createTables().then(() => {
 	});
 });
 
-app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
-	console.log('Received webhook event');
 
-	try {
-		// Vérifier si le corps de la requête est un Buffer
-		if (Buffer.isBuffer(request.body)) {
-			// Convertir le Buffer en chaîne de caractères puis en objet JSON
-			const jsonString = request.body.toString('utf-8');
-			console.log('JSON string:', jsonString);
-
-			let event = JSON.parse(jsonString);
-
-			if (event.type === 'checkout.session.completed') {
-				const session = event.data.object;
-				console.log('Handling checkout.session.completed event');
-				await handleCheckoutSessionCompleted(session);
-			}
-
-			response.json({ received: true });
-		} else {
-			console.error('Request body is not a buffer');
-			response.status(400).send('Request body is not a buffer');
-		}
-	} catch (err) {
-		console.error('Error parsing webhook event:', err);
-		response.status(400).send(`Webhook Error: ${err.message}`);
-	}
-});
 app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
 
 
