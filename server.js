@@ -122,11 +122,13 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 	try {
 		console.log('Starting insertUserActionHistoric');
 		// Ajoutez la transaction à la base de données
-		await client.query(
-			'INSERT INTO user_action_history (deposit, wallet, gain, date, user_id) VALUES ($1, $2, $3, $4, $5)',
-			[deposit, lastWallet * gain + deposit, gain, date, userId]
-		);
-		console.log(`Transaction ask for user: ${userId}`);
+		if(userId !== null){
+			await client.query(
+				'INSERT INTO user_action_history (deposit, wallet, gain, date, user_id) VALUES ($1, $2, $3, $4, $5)',
+				[deposit, lastWallet * gain + deposit, gain, date, userId]
+			);
+			console.log(`Transaction ask for user: ${userId}`);
+		}
 
 		// Récupérer le dernier montant enregistré pour chaque utilisateur
 		const res = await client.query(`
@@ -141,26 +143,29 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 		console.log(`data recover for UserWalletHistoric table for user: ${userId}`);
 		console.log("res.rows == ", res.rows);
 		const userIds = res.rows.map(row => row.user_id);
-		console.log(`user_ids: ${userIds}`);
 
-		const isPresent = userIds.includes(parseInt(userId));
-		console.log("isPresent =", isPresent);
-		if (!isPresent) {
-			console.log(`add init line for user`, userId);
-			await client.query(`
+		if(userId !== null){
+			const isPresent = userIds.includes(parseInt(userId));
+			console.log("isPresent =", isPresent);
+			if (!isPresent) {
+				console.log(`add init line for user`, userId);
+				await client.query(`
 				INSERT INTO UserWalletHistoric (user_id, wallet, gain, date)
 				VALUES ($1, $2, $3, $4);
 			`, [userId, deposit, gain, date]);
+			}
 		}
 
 		for (let row of res.rows) {
 			const user_id_UserWalletHistoric = row.user_id;
 			let newMontant = row.wallet * gain;
 
-			// Ajouter un montant supplémentaire pour l'utilisateur
-			if (parseInt(userId) === user_id_UserWalletHistoric) {
-				newMontant += deposit;
-				console.log("newMontant = ", newMontant)
+			if(userId !== null){
+				// Ajouter un montant supplémentaire pour l'utilisateur
+				if (parseInt(userId) === user_id_UserWalletHistoric) {
+					newMontant += deposit;
+					console.log("newMontant = ", newMontant)
+				}
 			}
 
 			// Insérer le nouveau montant dans la table
