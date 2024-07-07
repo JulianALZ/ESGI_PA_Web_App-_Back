@@ -265,18 +265,27 @@ app.use(bodyParser.json()); // Utilisez bodyParser.json pour les autres routes
 app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
 	console.log('Received webhook event');
 
-	// let event = JSON.parse(request.body); // Convertir le corps brut en JSON
-	let event = JSON.parse(request.body.toString());
-	console.log('t1');
+	try {
+		// Afficher le corps brut de la requête pour le débogage
+		console.log('Raw body:', request.body);
 
-	if (event.type === 'checkout.session.completed') {
-		console.log('t2');
-		const session = event.data.object;
-		console.log('Handling checkout.session.completed event');
-		await handleCheckoutSessionCompleted(session);
+		// Convertir le Buffer en chaîne de caractères puis en objet JSON
+		const jsonString = Buffer.from(request.body).toString('utf-8');
+		console.log('JSON string:', jsonString);
+
+		let event = JSON.parse(jsonString);
+
+		if (event.type === 'checkout.session.completed') {
+			const session = event.data.object;
+			console.log('Handling checkout.session.completed event');
+			await handleCheckoutSessionCompleted(session);
+		}
+
+		response.json({ received: true });
+	} catch (err) {
+		console.error('Error parsing webhook event:', err);
+		response.status(400).send(`Webhook Error: ${err.message}`);
 	}
-
-	response.json({ received: true });
 });
 
 
