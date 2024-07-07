@@ -72,35 +72,26 @@ testDbConnection();
 // });
 
 // Middleware pour traiter les requêtes JSON pour toutes les autres routes
-app.use(express.json());
+// Middleware pour parser le JSON
+app.use(bodyParser.json());
 
-// Utilisez express.raw() pour le point de terminaison du webhook Stripe
-app.post('/webhook', express.raw({ type: '*/*' }), async (request, response) => {
+app.post('/webhook', async (request, response) => {
 	console.log('Received webhook event');
+	console.log("request hh " ,request)
 
 	try {
-		// Vérifier si le corps de la requête est un Buffer
-		if (Buffer.isBuffer(request.body)) {
-			// Convertir le Buffer en chaîne de caractères puis en objet JSON
-			const rawBody = request.body.toString('utf-8');
-			console.log('Raw body:', rawBody);
+		const event = request.body;
+		console.log('Parsed event:', event);
 
-			const event = JSON.parse(rawBody);
-			console.log('Parsed event:', event);
-
-			if (event.type === 'checkout.session.completed') {
-				const session = event.data.object;
-				console.log('Handling checkout.session.completed event');
-				await handleCheckoutSessionCompleted(session);
-			}
-
-			response.json({ received: true });
-		} else {
-			console.error('Request body is not a buffer');
-			response.status(400).send('Request body is not a buffer');
+		if (event.type === 'checkout.session.completed') {
+			const session = event.data.object;
+			console.log('Handling checkout.session.completed event');
+			await handleCheckoutSessionCompleted(session);
 		}
+
+		response.json({ received: true });
 	} catch (err) {
-		console.error('Error parsing webhook event:', err);
+		console.error('Error handling webhook event:', err);
 		response.status(400).send(`Webhook Error: ${err.message}`);
 	}
 });
