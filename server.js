@@ -77,7 +77,7 @@ app.use(bodyParser.json());
 
 app.post('/webhook', async (request, response) => {
 	console.log('Received webhook event');
-	console.log("request hh " ,request)
+	console.log("request hh " ,request.body)
 
 	try {
 		const event = request.body;
