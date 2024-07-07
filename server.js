@@ -266,7 +266,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (request, 
 	console.log('Received webhook event');
 
 	// let event = JSON.parse(request.body); // Convertir le corps brut en JSON
-	let event = request.body;
+	let event = JSON.parse(request.body.toString());
 	console.log('t1');
 
 	if (event.type === 'checkout.session.completed') {
