@@ -259,7 +259,7 @@ app.post('/webhook', async (req, res) => {
 app.post('/api/wallet-historic', async (req, res) => {
 	console.log(`api/wallet-historic = start`) ;
 	// const { userId, period } = req.query;
-	const userId = req.query;
+	const userId = req.body.userId;
 	console.log('userId =', userId);
 	const period = 'allTime';
 
