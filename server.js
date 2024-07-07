@@ -48,39 +48,16 @@ const testDbConnection = async () => {
 
 testDbConnection();
 
-// app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
-// 	console.log('Received webhook event');
-// 	const sig = request.headers['stripe-signature'];
-// 	console.log('request =/=/=/= ', request);
-// 	let event;
-//
-// 	try {
-// 		event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
-//
-// 	} catch (err) {
-// 		console.log('⚠️  Webhook signature verification failed', err);
-// 		return response.sendStatus(400);
-// 	}
-//
-// 	if (event.type === 'checkout.session.completed') {
-// 		const session = event.data.object;
-// 		console.log('Handling checkout.session.completed event');
-// 		await handleCheckoutSessionCompleted(session);
-// 	}
-//
-// 	response.json({ received: true });
-// });
 
 
 
-const handleCheckoutSessionCompleted = async (session) => {
+const handleCheckoutSessionCompleted = async (session, userId) => {
 	console.log('Entered handleCheckoutSessionCompleted');
 
 	try {
 		const client = await pool.connect();
 		console.log('Database connection established');
 
-		const userId = 1; // Utiliser l'ID de l'utilisateur en brut pour le moment
 		const amount = session.amount_total / 100; // Assurez-vous de convertir en unité monétaire correcte
 		console.log(`Processing session completed for user: ${userId} with amount: ${amount}`);
 
@@ -264,10 +241,11 @@ app.post('/webhook', async (req, res) => {
 
 	try {
 		const event = req.body;
-		console.log('Parsed event:', event);
+		// console.log('Parsed event:', event);
 
 		if (event.type === 'checkout.session.completed') {
 			const session = event.data.object;
+			const userId = event.data.client_reference_id
 			console.log('Handling checkout.session.completed event');
 			await handleCheckoutSessionCompleted(session);
 		}
@@ -283,7 +261,7 @@ app.post('/webhook', async (req, res) => {
 app.get('/api/wallet-historic', async (req, res) => {
 	console.log(`api/wallet-historic = start`) ;
 	// const { userId, period } = req.query;
-	const userId = 1;
+	const { userId} = req.query;
 	const period = 'allTime';
 
 	const client = await pool.connect();
