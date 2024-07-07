@@ -247,7 +247,7 @@ app.post('/webhook', async (req, res) => {
 			const session = event.data.object;
 			const userId = event.data.client_reference_id
 			console.log('Handling checkout.session.completed event');
-			await handleCheckoutSessionCompleted(session);
+			await handleCheckoutSessionCompleted(session, userId);
 		}
 
 		res.json({ received: true });
