@@ -71,8 +71,8 @@ testDbConnection();
 // 	response.json({ received: true });
 // });
 
-// Middleware pour le point de terminaison du webhook Stripe
-app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
+// Utilisez express.raw() pour le point de terminaison du webhook Stripe
+app.post('/webhook', express.raw({ type: '*/*' }), async (request, response) => {
 	console.log('Received webhook event');
 
 	try {
