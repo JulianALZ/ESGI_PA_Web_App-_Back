@@ -141,10 +141,10 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 		const userIds = res.rows.map(row => row.user_id);
 		console.log(`user_ids: ${userIds}`);
 
-		const isPresent = userIds.includes(userId);
+		const isPresent = userIds.includes(parseInt(userId));
 		console.log("isPresent =", isPresent);
 		if (!isPresent) {
-			console.log(`add init line for user`, {userId});
+			console.log(`add init line for user`, userId);
 			await client.query(`
 				INSERT INTO UserWalletHistoric (user_id, wallet, gain, date)
 				VALUES ($1, $2, $3, $4);
