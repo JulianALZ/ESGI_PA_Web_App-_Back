@@ -212,7 +212,7 @@ const createTables = async () => {
 		if (count === 0) {
 			await client.query(`
 				INSERT INTO user_action_history (deposit, wallet, gain, date, user_id)
-				VALUES (0, 0, 0, '2024-06-23 13:59:29', NULL);
+				VALUES (0, 0, 0, '2024-07-07 22:21:29', NULL);
 			`);
 			console.log('default row of user_action_history have been added');
 		}
