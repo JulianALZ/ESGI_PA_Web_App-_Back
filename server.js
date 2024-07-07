@@ -155,16 +155,12 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 
 		for (let row of res.rows) {
 			const user_id_UserWalletHistoric = row.user_id;
-			console.log("userId:", userId, "Type:", typeof userId);
-			console.log("user_id_UserWalletHistoric:", user_id_UserWalletHistoric, "Type:", typeof user_id_UserWalletHistoric);
 			let newMontant = row.wallet * gain;
-			console.log("newMontant = ", newMontant)
 
 			// Ajouter un montant supplémentaire pour l'utilisateur
-			if (userId === parseInt(user_id_UserWalletHistoric)) {
-				console.log("t1")
+			if (parseInt(userId) === user_id_UserWalletHistoric) {
 				newMontant += deposit;
-				console.log("newMontant2 = ", newMontant)
+				console.log("newMontant = ", newMontant)
 			}
 
 			// Insérer le nouveau montant dans la table
