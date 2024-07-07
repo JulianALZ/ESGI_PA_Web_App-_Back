@@ -48,9 +48,6 @@ const testDbConnection = async () => {
 
 testDbConnection();
 
-
-
-
 const handleCheckoutSessionCompleted = async (session, userId) => {
 	console.log('Entered handleCheckoutSessionCompleted');
 
@@ -157,7 +154,7 @@ async function insertUserActionHistoric(client, deposit, lastWallet, gain, date,
 			console.log("userId == ",userId);
 			let newMontant = row.wallet * gain;
 
-			// Ajouter un montant supplémentaire pour l'utilisateur 1
+			// Ajouter un montant supplémentaire pour l'utilisateur
 			if (userId === user_id_UserWalletHistoric) {
 				newMontant += deposit;
 			}
