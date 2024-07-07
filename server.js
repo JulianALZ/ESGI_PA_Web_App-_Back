@@ -71,16 +71,17 @@ testDbConnection();
 // 	response.json({ received: true });
 // });
 
-// Utilisez express.raw() pour le point de terminaison du webhook Stripe
+// Middleware pour le point de terminaison du webhook Stripe
 app.post('/webhook', express.raw({ type: 'application/json' }), async (request, response) => {
 	console.log('Received webhook event');
 
 	try {
 		// Convertir le Buffer en chaîne de caractères puis en objet JSON
-		const jsonString = Buffer.isBuffer(request.body) ? request.body.toString('utf-8') : JSON.stringify(request.body);
-		console.log('JSON string:', jsonString);
+		const rawBody = request.body.toString('utf-8');
+		console.log('Raw body:', rawBody);
 
-		let event = JSON.parse(jsonString);
+		const event = JSON.parse(rawBody);
+		console.log('Parsed event:', event);
 
 		if (event.type === 'checkout.session.completed') {
 			const session = event.data.object;
