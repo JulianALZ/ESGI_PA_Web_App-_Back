@@ -293,8 +293,13 @@ app.post('/api/retrait', async (req, res) => {
 		if (amount < userWallet) {
 			try {
 				const ValueRetrait = -amount * 100
+				const session = {
+					amount_total: ValueRetrait,
+				};
+
 				console.log("ValueRetrait =  ", ValueRetrait);
-				await handleCheckoutSessionCompleted(ValueRetrait, userId);
+				await handleCheckoutSessionCompleted(session, userId);
+
 				client.release(); // Libérez la connexion client
 				return res.status(200).json({ message: 'Transaction completed successfully' });
 			} catch (error) {
