@@ -268,6 +268,8 @@ app.post('/api/retrait', async (req, res) => {
 	console.log('Received retrait event');
 	const { userId, amount } = req.body;
 
+	const client = await pool.connect(); // Obtenez une connexion client
+
 	try {
 		const result = await client.query(`
             SELECT user_id, wallet
@@ -281,6 +283,7 @@ app.post('/api/retrait', async (req, res) => {
         `, [userId]);
 
 		if (result.rows.length === 0) {
+			client.release(); // Libérez la connexion client
 			return res.status(404).json({ message: 'User not found' });
 		}
 
@@ -291,16 +294,20 @@ app.post('/api/retrait', async (req, res) => {
 			console.log("enter in if ");
 			try {
 				await handleCheckoutSessionCompleted(amount, userId);
+				client.release(); // Libérez la connexion client
 				return res.status(200).json({ message: 'Transaction completed successfully' });
 			} catch (error) {
 				console.error('Error during checkout session:', error);
+				client.release(); // Libérez la connexion client
 				return res.status(500).json({ message: 'Transaction failed', error: error.message });
 			}
 		} else {
+			client.release(); // Libérez la connexion client
 			return res.status(400).json({ message: 'Insufficient funds', wallet: userWallet });
 		}
 	} catch (error) {
 		console.error('Database query error:', error);
+		client.release(); // Libérez la connexion client
 		return res.status(500).json({ message: 'Internal server error', error: error.message });
 	}
 });
