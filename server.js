@@ -264,6 +264,48 @@ app.post('/webhook', async (req, res) => {
 	}
 });
 
+app.post('/api/retrait', async (req, res) => {
+	console.log('Received retrait event');
+	const { userId, amount } = req.body;
+
+	try {
+		const result = await client.query(`
+            SELECT user_id, wallet
+            FROM UserWalletHistoric
+            WHERE (user_id, date) IN (
+                SELECT user_id, MAX(date)
+                FROM UserWalletHistoric
+                GROUP BY user_id
+            )
+            AND user_id = $1;
+        `, [userId]);
+
+		if (result.rows.length === 0) {
+			return res.status(404).json({ message: 'User not found' });
+		}
+
+		const userWallet = result.rows[0].wallet;
+		console.log("userWallet = ", userWallet);
+
+		if (amount < userWallet) {
+			console.log("enter in if ");
+			try {
+				await handleCheckoutSessionCompleted(amount, userId);
+				return res.status(200).json({ message: 'Transaction completed successfully' });
+			} catch (error) {
+				console.error('Error during checkout session:', error);
+				return res.status(500).json({ message: 'Transaction failed', error: error.message });
+			}
+		} else {
+			return res.status(400).json({ message: 'Insufficient funds', wallet: userWallet });
+		}
+	} catch (error) {
+		console.error('Database query error:', error);
+		return res.status(500).json({ message: 'Internal server error', error: error.message });
+	}
+});
+
+
 // Route API pour getWalletHistoric
 app.post('/api/wallet-historic', async (req, res) => {
 	console.log(`api/wallet-historic = start`) ;
